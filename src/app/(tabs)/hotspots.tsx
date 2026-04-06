@@ -1,5 +1,5 @@
 import { Colors, Spacing } from "@/constants/theme";
-import { DEV_MODE } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/auth";
 import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
@@ -64,8 +64,8 @@ export default function HotspotsScreen() {
   const fetchHotspots = useCallback(async () => {
     setError(null);
     try {
-      // Use mock data in DEV_MODE
-      if (DEV_MODE) {
+      // Use mock data in DEMO_MODE
+      if (DEMO_MODE) {
         const mockHotspots = getMockHotspots();
         const mockItems = getMockItems();
         const withCounts = mockHotspots.map((hotspot) => ({
@@ -143,8 +143,8 @@ export default function HotspotsScreen() {
     setModalLoading(true);
 
     try {
-      // Use mock data in DEV_MODE
-      if (DEV_MODE) {
+      // Use mock data in DEMO_MODE
+      if (DEMO_MODE) {
         const mockItems = getMockItems();
         const hotspotItems = mockItems
           .filter(

@@ -1,7 +1,10 @@
 import type { Profile, UserRole } from "@/types";
 import { supabase } from "./supabase";
 
-export const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE !== "false";
+// DEV_MODE: shows dev bypass login button and developer features
+export const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === "true";
+// DEMO_MODE: uses mock/seed data when DB is empty, for presentations
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === "true";
 export const DEV_LOGIN_EMAIL = process.env.EXPO_PUBLIC_DEV_LOGIN_EMAIL ?? "";
 export const DEV_LOGIN_PASSWORD =
   process.env.EXPO_PUBLIC_DEV_LOGIN_PASSWORD ?? "";
@@ -52,6 +55,17 @@ export async function devBypassLogin(): Promise<{
   profile: Profile;
   role: UserRole;
 }> {
+  // If we have real credentials, do a proper Supabase sign-in
+  if (DEV_LOGIN_EMAIL.length > 0 && DEV_LOGIN_PASSWORD.length > 0) {
+    try {
+      const result = await signIn(DEV_LOGIN_EMAIL, DEV_LOGIN_PASSWORD);
+      return result;
+    } catch {
+      // Fall through to local bypass if sign-in fails
+    }
+  }
+
+  // Local-only bypass (no DB session)
   try {
     if (DEV_LOGIN_EMAIL.length > 0) {
       const { data: profile } = await supabase

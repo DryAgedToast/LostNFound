@@ -1,5 +1,5 @@
 import { Colors, Spacing } from "@/constants/theme";
-import { DEV_MODE, getCurrentProfile } from "@/lib/auth";
+import { DEMO_MODE, getCurrentProfile } from "@/lib/auth";
 import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
@@ -114,8 +114,8 @@ export default function ItemDetailScreen() {
     if (!id) return;
     setError(null);
     try {
-      // Use mock data in DEV_MODE
-      if (DEV_MODE) {
+      // Use mock data in DEMO_MODE
+      if (DEMO_MODE) {
         const mockItem = getMockItemById(id as string);
         if (mockItem) {
           setItem(mockItem as ItemRow);

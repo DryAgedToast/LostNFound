@@ -1,5 +1,5 @@
 import { Colors, Spacing } from "@/constants/theme";
-import { DEV_MODE, getCurrentProfile, signOut } from "@/lib/auth";
+import { DEMO_MODE, getCurrentProfile, signOut } from "@/lib/auth";
 import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
@@ -50,7 +50,7 @@ export default function ProfileScreen() {
       }
       setProfile(currentProfile);
 
-      if (DEV_MODE) {
+      if (DEMO_MODE) {
         setItemCount(0);
       } else {
         const { count, error: countError } = await supabase

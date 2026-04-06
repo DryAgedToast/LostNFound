@@ -1,7 +1,7 @@
 import CategoryFilter from "@/components/CategoryFilter";
 import ItemCard from "@/components/ItemCard";
 import { Colors, Spacing } from "@/constants/theme";
-import { DEV_MODE, getCurrentProfile } from "@/lib/auth";
+import { DEMO_MODE, getCurrentProfile } from "@/lib/auth";
 import { getMockItems } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import type { ItemCategory, ItemWithPoster } from "@/types";
@@ -50,12 +50,6 @@ export default function FeedScreen() {
 
   const fetchItems = useCallback(async () => {
     try {
-      // Use mock data in DEV_MODE
-      if (DEV_MODE) {
-        setItems(getMockItems());
-        return;
-      }
-
       const { data, error } = await supabase
         .from("items")
         .select("*, profiles(*), hotspots(*)")
@@ -63,9 +57,11 @@ export default function FeedScreen() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setItems((data ?? []) as unknown as ItemWithPoster[]);
+      const dbItems = (data ?? []) as unknown as ItemWithPoster[];
+      // If DB is connected but empty, show mock data in dev mode so there's something to see
+      setItems(dbItems.length === 0 && DEMO_MODE ? getMockItems() : dbItems);
     } catch {
-      // Fallback to mock data if database fails
+      // Fallback to mock data if database is unreachable
       setItems(getMockItems());
     }
   }, []);

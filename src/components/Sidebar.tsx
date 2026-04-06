@@ -1,8 +1,7 @@
 import { Colors } from "@/constants/theme";
-import { DEV_MODE } from "@/lib/auth";
-import { showDatabaseNotConnectedPopup } from "@/lib/db-alert";
+import { getCurrentProfile, signOut } from "@/lib/auth";
 import { usePathname, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import type { Profile } from "@/types";
 
 interface SidebarItemProps {
   icon: string;
@@ -59,6 +59,11 @@ function SidebarItem({
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    getCurrentProfile().then(setProfile).catch(() => setProfile(null));
+  }, [pathname]);
 
   const navigationItems = [
     { icon: "🏠", label: "Home", href: "/(tabs)" },
@@ -75,12 +80,10 @@ export default function Sidebar() {
     router.push("/(tabs)/post" as any);
   };
 
-  const handleLogin = () => {
-    if (DEV_MODE) {
-      showDatabaseNotConnectedPopup();
-    } else {
-      router.push("/auth/login" as any);
-    }
+  const handleLogout = async () => {
+    await signOut();
+    setProfile(null);
+    router.replace("/auth/login" as any);
   };
 
   return (
@@ -122,26 +125,25 @@ export default function Sidebar() {
       {/* Divider */}
       <View style={styles.divider} />
 
-      {/* Login Button (placeholder until DB connected) */}
-      <TouchableOpacity
-        onPress={handleLogin}
-        style={styles.loginButton}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.loginIcon}>🔐</Text>
-        <Text style={styles.loginLabel}>
-          {DEV_MODE ? "Login (Demo Mode)" : "Login"}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Footer */}
-      {DEV_MODE && (
+      {/* Auth footer */}
+      {profile ? (
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Demo Mode Active</Text>
-          <Text style={styles.footerSubtext}>
-            Connect database to enable all features
-          </Text>
+          <Text style={styles.footerText} numberOfLines={1}>{profile.display_name}</Text>
+          <Text style={styles.footerSubtext} numberOfLines={1}>{profile.email}</Text>
+          <TouchableOpacity onPress={handleLogout} style={styles.loginButton} activeOpacity={0.7}>
+            <Text style={styles.loginIcon}>🚪</Text>
+            <Text style={styles.loginLabel}>Log Out</Text>
+          </TouchableOpacity>
         </View>
+      ) : (
+        <TouchableOpacity
+          onPress={() => router.push("/auth/login" as any)}
+          style={styles.loginButton}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.loginIcon}>🔐</Text>
+          <Text style={styles.loginLabel}>Login</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
