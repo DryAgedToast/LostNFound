@@ -213,7 +213,7 @@ export default function PostScreen() {
       const { data, error: insertError } = await supabase
         .from("items")
         .insert({
-          poster_id: profile.user_id,
+          poster_id: profile.id,
           title: title.trim(),
           category,
           description: description.trim() || null,

@@ -5,6 +5,7 @@ import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
 } from "@/lib/db-alert";
+import { getCurrentProfile } from "@/lib/auth";
 import { subscribeToMessages, unsubscribeFromClaim } from "@/lib/realtime";
 import { supabase } from "@/lib/supabase";
 import type { Claim, ClaimStatus, MessageWithSender, Profile } from "@/types";
@@ -55,17 +56,9 @@ export default function MessageScreen() {
 
     try {
       // 1. Current user profile
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) throw new Error("Not authenticated.");
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", authData.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-      setCurrentProfile(profileData as Profile);
+      const profileData = await getCurrentProfile();
+      if (!profileData) throw new Error("Not authenticated.");
+      setCurrentProfile(profileData);
 
       // 2. Claim with item info
       const { data: claimData, error: claimError } = await supabase
@@ -259,7 +252,8 @@ export default function MessageScreen() {
             value={inputText}
             onChangeText={setInputText}
             multiline
-            returnKeyType="default"
+            returnKeyType="send"
+            blurOnSubmit={false}
             onSubmitEditing={handleSend}
           />
           <TouchableOpacity

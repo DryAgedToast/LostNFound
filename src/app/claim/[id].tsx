@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { getCurrentProfile } from '@/lib/auth';
 import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
@@ -41,22 +42,16 @@ export default function ClaimScreen() {
     setLoading(true);
     setError(null);
     try {
-      const [
-        { data: { user }, error: userErr },
-      ] = await Promise.all([supabase.auth.getUser()]);
-
-      if (userErr || !user) throw new Error('Not authenticated');
-
-      const [itemRes, profileRes] = await Promise.all([
+      const [profile, itemRes] = await Promise.all([
+        getCurrentProfile(),
         supabase.from('items').select('*').eq('id', id).single(),
-        supabase.from('profiles').select('*').eq('user_id', user.id).single(),
       ]);
 
+      if (!profile) throw new Error('Not authenticated');
       if (itemRes.error) throw itemRes.error;
-      if (profileRes.error) throw profileRes.error;
 
       setItem(itemRes.data as Item);
-      setCurrentProfile(profileRes.data as Profile);
+      setCurrentProfile(profile);
 
       // Initialise answer map
       const q = (itemRes.data as Item).custom_questions ?? [];

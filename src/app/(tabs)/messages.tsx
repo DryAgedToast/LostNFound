@@ -4,6 +4,7 @@ import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
 } from "@/lib/db-alert";
+import { getCurrentProfile } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import type { Claim, Item, Profile } from "@/types";
 import { useRouter } from "expo-router";
@@ -44,30 +45,33 @@ export default function MessagesScreen() {
   const fetchData = useCallback(async () => {
     setError(null);
     try {
-      const {
-        data: { user },
-        error: userErr,
-      } = await supabase.auth.getUser();
-      if (userErr || !user) throw new Error("Not authenticated");
-
-      const { data: profileData, error: profileErr } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profileErr || !profileData)
-        throw profileErr ?? new Error("Profile not found");
-      const profile = profileData as Profile;
+      const profile = await getCurrentProfile();
+      if (!profile) throw new Error("Not authenticated");
 
       // Query 1: claims on items I posted
-      const { data: onMyItems, error: onMyErr } = await supabase
-        .from("claims")
-        .select("*, items!inner(*), profiles(*)")
-        .eq("items.poster_id", profile.id)
-        .order("created_at", { ascending: false });
+      // First get my item IDs, then fetch claims for those items
+      const { data: myItems, error: myItemsErr } = await supabase
+        .from("items")
+        .select("id")
+        .eq("poster_id", profile.id);
 
-      if (onMyErr) throw onMyErr;
+      if (myItemsErr) throw myItemsErr;
+
+      const myItemIds = (myItems ?? []).map((i: { id: string }) => i.id);
+      console.log('[Inbox] profile.id:', profile.id, 'myItemIds:', myItemIds);
+
+      let onMyItems: ClaimOnMyItem[] = [];
+      if (myItemIds.length > 0) {
+        const { data: onMyItemsData, error: onMyErr } = await supabase
+          .from("claims")
+          .select("*, items!inner(*), profiles!claimant_id(*)")
+          .in("item_id", myItemIds)
+          .order("created_at", { ascending: false });
+
+        if (onMyErr) throw onMyErr;
+        onMyItems = (onMyItemsData ?? []) as ClaimOnMyItem[];
+        console.log('[Inbox] claimsOnMyItems:', onMyItems.length, onMyItems);
+      }
 
       // Query 2: claims I submitted
       const { data: myClaimsData, error: myClaimsErr } = await supabase
@@ -78,7 +82,7 @@ export default function MessagesScreen() {
 
       if (myClaimsErr) throw myClaimsErr;
 
-      setClaimsOnMyItems((onMyItems ?? []) as ClaimOnMyItem[]);
+      setClaimsOnMyItems(onMyItems);
       setMyClaims((myClaimsData ?? []) as MyClaim[]);
     } catch (err: unknown) {
       if (isDatabaseUnavailableError(err)) {

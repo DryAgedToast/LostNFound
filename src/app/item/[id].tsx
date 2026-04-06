@@ -128,26 +128,19 @@ export default function ItemDetailScreen() {
         return;
       }
 
-      const {
-        data: { user },
-        error: userErr,
-      } = await supabase.auth.getUser();
-      if (userErr || !user) throw new Error("Not authenticated");
-
-      const [itemRes, profileRes] = await Promise.all([
+      const [fetchedProfile, itemRes] = await Promise.all([
+        getCurrentProfile(),
         supabase
           .from("items")
-          .select("*, profiles!poster_id(*), hotspots(*)")
+          .select("*, profiles(*), hotspots(*)")
           .eq("id", id)
           .single(),
-        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
       ]);
 
+      if (!fetchedProfile) throw new Error("Not authenticated");
       if (itemRes.error) throw itemRes.error;
-      if (profileRes.error) throw profileRes.error;
 
       const fetchedItem = itemRes.data as ItemRow;
-      const fetchedProfile = profileRes.data as Profile;
 
       setItem(fetchedItem);
       setCurrentProfile(fetchedProfile);
