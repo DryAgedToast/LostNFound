@@ -1,5 +1,9 @@
 import { Colors, Spacing } from "@/constants/theme";
 import { getCurrentProfile } from "@/lib/auth";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { supabase } from "@/lib/supabase";
 import type { CustomQuestion, Hotspot, ItemCategory, Profile } from "@/types";
 import { Image } from "expo-image";
@@ -227,6 +231,9 @@ export default function PostScreen() {
 
       router.replace(`/item/${data.id}`);
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setError("Unable to save. Check your connection.");
     } finally {
       setSubmitting(false);
@@ -250,7 +257,7 @@ export default function PostScreen() {
       <SafeAreaView
         style={[styles.centered, { backgroundColor: colors.background }]}
       >
-        <ActivityIndicator size="large" color="#208AEF" />
+        <ActivityIndicator size="large" color="#1877F2" />
       </SafeAreaView>
     );
   }
@@ -421,7 +428,7 @@ export default function PostScreen() {
           ))}
           {questions.length < 5 && (
             <TouchableOpacity
-              style={[styles.addQuestionButton, { borderColor: "#208AEF" }]}
+              style={[styles.addQuestionButton, { borderColor: "#1877F2" }]}
               onPress={addQuestion}
             >
               <Text style={styles.addQuestionText}>+ Add Question</Text>
@@ -488,7 +495,7 @@ export default function PostScreen() {
                 <Text
                   style={[
                     styles.modalOptionText,
-                    { color: category === cat ? "#208AEF" : colors.text },
+                    { color: category === cat ? "#1877F2" : colors.text },
                   ]}
                 >
                   {CATEGORY_LABELS[cat]}
@@ -537,7 +544,7 @@ export default function PostScreen() {
               <Text
                 style={[
                   styles.modalOptionText,
-                  { color: hotspotId === null ? "#208AEF" : colors.text },
+                  { color: hotspotId === null ? "#1877F2" : colors.text },
                 ]}
               >
                 None
@@ -560,7 +567,7 @@ export default function PostScreen() {
                 <Text
                   style={[
                     styles.modalOptionText,
-                    { color: hotspotId === h.id ? "#208AEF" : colors.text },
+                    { color: hotspotId === h.id ? "#1877F2" : colors.text },
                   ]}
                 >
                   {h.name}
@@ -664,7 +671,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   removePhotoText: {
-    color: "#EF4444",
+    color: "#65676B",
     fontSize: 13,
     fontWeight: "600",
     marginTop: Spacing.one,
@@ -697,7 +704,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#EF4444",
+    backgroundColor: "#65676B",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -714,23 +721,23 @@ const styles = StyleSheet.create({
     marginTop: Spacing.one,
   },
   addQuestionText: {
-    color: "#208AEF",
+    color: "#1877F2",
     fontSize: 14,
     fontWeight: "600",
   },
   errorContainer: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#E4E6EB",
     borderRadius: 8,
     padding: Spacing.three,
     marginTop: Spacing.three,
   },
   errorText: {
-    color: "#DC2626",
+    color: "#65676B",
     fontSize: 13,
     lineHeight: 18,
   },
   submitButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     borderRadius: 12,
     paddingVertical: Spacing.three,
     alignItems: "center",
@@ -740,7 +747,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
@@ -783,7 +790,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   modalCancelText: {
-    color: "#EF4444",
+    color: "#65676B",
     fontSize: 15,
     fontWeight: "600",
   },

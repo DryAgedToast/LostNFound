@@ -250,13 +250,4 @@ CREATE POLICY "identity_records_storage_delete" ON storage.objects FOR DELETE US
   AND current_user_role() IN ('staff', 'admin')
 );
 
--- ============================================================
--- SEED DATA — 5 Hotspots
--- ============================================================
-
-INSERT INTO hotspots (name, building_type, address, latitude, longitude, staff_contact) VALUES
-  ('Main Library', 'library', '100 Library Drive', 44.2252, -76.4957, 'library@university.edu'),
-  ('Student Union', 'student_center', '200 Union Ave', 44.2265, -76.4942, 'union@university.edu'),
-  ('Science Lecture Hall A', 'lecture_hall', '300 Science Rd', 44.2240, -76.4970, 'science@university.edu'),
-  ('Recreation Center', 'gym', '400 Rec Way', 44.2278, -76.4930, 'rec@university.edu'),
-  ('Administration Building', 'admin_building', '1 Admin Plaza', 44.2230, -76.4960, 'admin@university.edu');
+-- No seed/filler records included in base schema migration.

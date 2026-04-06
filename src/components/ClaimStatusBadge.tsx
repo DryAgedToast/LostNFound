@@ -7,10 +7,10 @@ interface ClaimStatusBadgeProps {
 }
 
 const STATUS_CONFIG: Record<ClaimStatus, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "#EAB308" },
-  approved: { label: "Approved", color: "#10B981" },
-  rejected: { label: "Rejected", color: "#EF4444" },
-  awaiting_in_person: { label: "In-Person Required", color: "#F59E0B" },
+  pending: { label: "Pending", color: "#1877F2" },
+  approved: { label: "Approved", color: "#42B72A" },
+  rejected: { label: "Rejected", color: "#65676B" },
+  awaiting_in_person: { label: "In-Person Required", color: "#1877F2" },
 };
 
 export default function ClaimStatusBadge({ status }: ClaimStatusBadgeProps) {
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   label: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
   },

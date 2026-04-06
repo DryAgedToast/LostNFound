@@ -1,5 +1,9 @@
 import { Colors, Spacing } from "@/constants/theme";
 import { DEV_MODE, getCurrentProfile } from "@/lib/auth";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { getMockItemById } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import type {
@@ -63,10 +67,10 @@ const STATUS_LABELS: Record<ItemStatus, string> = {
 };
 
 const STATUS_COLORS: Record<ItemStatus, string> = {
-  unclaimed: "#10B981",
-  pending: "#F59E0B",
-  claimed: "#6B7280",
-  at_hotspot: "#208AEF",
+  unclaimed: "#42B72A",
+  pending: "#1877F2",
+  claimed: "#65676B",
+  at_hotspot: "#1877F2",
 };
 
 function formatTime(isoString: string): string {
@@ -161,6 +165,9 @@ export default function ItemDetailScreen() {
         setPendingClaims((claimsData ?? []) as ClaimWithProfile[]);
       }
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setError(err instanceof Error ? err.message : "Failed to load item");
     } finally {
       setLoading(false);
@@ -274,6 +281,9 @@ export default function ItemDetailScreen() {
         "Your theft claim has been submitted for review. We will follow up with you shortly.",
       );
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setTheftError("Unable to submit. Check your connection.");
     } finally {
       setSubmittingTheft(false);
@@ -288,7 +298,7 @@ export default function ItemDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
         </View>
       </SafeAreaView>
     );
@@ -317,7 +327,7 @@ export default function ItemDetailScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#208AEF"
+            tintColor="#1877F2"
           />
         }
       >
@@ -564,7 +574,7 @@ export default function ItemDetailScreen() {
                 activeOpacity={0.8}
               >
                 {submittingTheft ? (
-                  <ActivityIndicator color="#ffffff" />
+                  <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={styles.submitTheftButtonText}>
                     Submit Theft Claim
@@ -600,7 +610,7 @@ function makeStyles(colors: typeof Colors.light) {
       paddingVertical: Spacing.two,
     },
     backButtonText: {
-      color: "#208AEF",
+      color: "#1877F2",
       fontSize: 15,
       fontWeight: "600",
     },
@@ -652,7 +662,7 @@ function makeStyles(colors: typeof Colors.light) {
       borderRadius: 12,
     },
     statusBadgeText: {
-      color: "#ffffff",
+      color: "#FFFFFF",
       fontSize: 13,
       fontWeight: "600",
     },
@@ -678,46 +688,46 @@ function makeStyles(colors: typeof Colors.light) {
       marginTop: 2,
     },
     errorBox: {
-      backgroundColor: "#FDECEA",
+      backgroundColor: "#E4E6EB",
       borderRadius: 8,
       padding: Spacing.three,
       marginBottom: Spacing.three,
     },
     errorText: {
-      color: "#C0392B",
+      color: "#65676B",
       fontSize: 14,
     },
     successBox: {
-      backgroundColor: "#D1FAE5",
+      backgroundColor: "#E4E6EB",
       borderRadius: 8,
       padding: Spacing.three,
       marginBottom: Spacing.three,
     },
     successText: {
-      color: "#065F46",
+      color: "#1C1E21",
       fontSize: 14,
     },
     primaryButton: {
-      backgroundColor: "#208AEF",
+      backgroundColor: "#1877F2",
       borderRadius: 12,
       paddingVertical: Spacing.three,
       alignItems: "center",
       marginTop: Spacing.two,
     },
     primaryButtonText: {
-      color: "#ffffff",
+      color: "#FFFFFF",
       fontSize: 16,
       fontWeight: "700",
     },
     dangerButton: {
-      backgroundColor: "#EF4444",
+      backgroundColor: "#65676B",
       borderRadius: 12,
       paddingVertical: Spacing.three,
       alignItems: "center",
       marginTop: Spacing.two,
     },
     dangerButtonText: {
-      color: "#ffffff",
+      color: "#FFFFFF",
       fontSize: 16,
       fontWeight: "700",
     },
@@ -764,13 +774,13 @@ function makeStyles(colors: typeof Colors.light) {
       gap: Spacing.two,
     },
     reviewButton: {
-      backgroundColor: "#208AEF",
+      backgroundColor: "#1877F2",
       borderRadius: 8,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
     },
     reviewButtonText: {
-      color: "#ffffff",
+      color: "#FFFFFF",
       fontSize: 13,
       fontWeight: "600",
     },
@@ -807,7 +817,7 @@ function makeStyles(colors: typeof Colors.light) {
     },
     modalClose: {
       fontSize: 16,
-      color: "#208AEF",
+      color: "#1877F2",
       fontWeight: "600",
     },
     modalSubtitle: {
@@ -845,7 +855,7 @@ function makeStyles(colors: typeof Colors.light) {
       marginBottom: Spacing.three,
     },
     evidenceButtonText: {
-      color: "#208AEF",
+      color: "#1877F2",
       fontSize: 15,
       fontWeight: "600",
     },
@@ -856,14 +866,14 @@ function makeStyles(colors: typeof Colors.light) {
       marginBottom: Spacing.three,
     },
     submitTheftButton: {
-      backgroundColor: "#EF4444",
+      backgroundColor: "#65676B",
       borderRadius: 12,
       paddingVertical: Spacing.three,
       alignItems: "center",
       marginTop: Spacing.two,
     },
     submitTheftButtonText: {
-      color: "#ffffff",
+      color: "#FFFFFF",
       fontSize: 16,
       fontWeight: "700",
     },

@@ -14,12 +14,19 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarInactiveTintColor: colors.placeholder,
         tabBarStyle: {
-          backgroundColor: colors.background,
+          backgroundColor: colors.backgroundElement,
           borderTopColor: colors.border,
         },
-        headerShown: false,
+        headerStyle: {
+          backgroundColor: colors.backgroundElement,
+        },
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          color: colors.text,
+        },
+        headerShown: true,
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />

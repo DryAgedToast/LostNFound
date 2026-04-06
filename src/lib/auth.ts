@@ -1,33 +1,82 @@
 import type { Profile, UserRole } from "@/types";
 import { supabase } from "./supabase";
 
-// DEV BYPASS — remove before production
-export const DEV_MODE = true;
+export const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE !== "false";
+export const DEV_LOGIN_EMAIL = process.env.EXPO_PUBLIC_DEV_LOGIN_EMAIL ?? "";
+export const DEV_LOGIN_PASSWORD =
+  process.env.EXPO_PUBLIC_DEV_LOGIN_PASSWORD ?? "";
+const DEV_BYPASS_DISPLAY_NAME =
+  process.env.EXPO_PUBLIC_DEV_BYPASS_DISPLAY_NAME ?? "Dev User";
+
 export const MOCK_USER: Profile = {
-  id: "dev-user-001",
-  user_id: "dev-user-001",
-  display_name: "Test User",
-  email: "test@example.com",
+  id: "dev-bypass-user",
+  user_id: "dev-bypass-user",
+  display_name: DEV_BYPASS_DISPLAY_NAME,
+  email: DEV_LOGIN_EMAIL,
   avatar_url: null,
   role: "student",
   created_at: new Date(0).toISOString(),
 };
-let devSessionActive = true;
+let devSessionActive = false;
+let devBypassProfile: Profile = MOCK_USER;
+
+function toUserFacingAuthError(error: unknown): Error {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (
+      msg.includes("fetch failed") ||
+      msg.includes("network request failed") ||
+      msg.includes("enotfound") ||
+      msg.includes("failed to fetch")
+    ) {
+      return new Error(
+        "Cannot reach Supabase. Check EXPO_PUBLIC_SUPABASE_URL, internet connection, and DNS/project ref.",
+      );
+    }
+
+    if (
+      msg.includes("invalid login credentials") ||
+      msg.includes("email not confirmed") ||
+      msg.includes("user already registered")
+    ) {
+      return error;
+    }
+  }
+
+  return new Error(
+    "Unable to connect. Please check your internet connection.",
+  );
+}
+
+export async function devBypassLogin(): Promise<{
+  profile: Profile;
+  role: UserRole;
+}> {
+  try {
+    if (DEV_LOGIN_EMAIL.length > 0) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("email", DEV_LOGIN_EMAIL)
+        .single();
+
+      if (profile != null) {
+        devBypassProfile = profile as Profile;
+      }
+    }
+  } catch {
+    // Keep local bypass active even when DB is unreachable.
+  }
+
+  devSessionActive = true;
+  return { profile: devBypassProfile, role: devBypassProfile.role };
+}
 
 export async function signUp(
   email: string,
   password: string,
   displayName: string,
 ): Promise<Profile> {
-  if (DEV_MODE) {
-    devSessionActive = true;
-    return {
-      ...MOCK_USER,
-      email,
-      display_name: displayName || MOCK_USER.display_name,
-    };
-  }
-
   try {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -48,11 +97,11 @@ export async function signUp(
       .single();
 
     if (profileError) throw profileError;
+    // If a real auth session is created, stop using any demo bypass session.
+    devSessionActive = false;
     return profile as Profile;
-  } catch {
-    throw new Error(
-      "Unable to connect. Please check your internet connection.",
-    );
+  } catch (error: unknown) {
+    throw toUserFacingAuthError(error);
   }
 }
 
@@ -60,11 +109,6 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<{ profile: Profile; role: UserRole }> {
-  if (DEV_MODE) {
-    devSessionActive = true;
-    return { profile: MOCK_USER, role: MOCK_USER.role };
-  }
-
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -80,37 +124,36 @@ export async function signIn(
       .single();
 
     if (profileError) throw profileError;
+    // If sign-in succeeded, prefer real auth-backed data paths.
+    devSessionActive = false;
     return { profile: profile as Profile, role: (profile as Profile).role };
-  } catch {
-    throw new Error(
-      "Unable to connect. Please check your internet connection.",
-    );
+  } catch (error: unknown) {
+    throw toUserFacingAuthError(error);
   }
 }
 
 export async function signOut(): Promise<void> {
-  if (DEV_MODE) {
+  if (DEV_MODE && devSessionActive) {
     devSessionActive = false;
     return;
   }
   try {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-  } catch {
-    throw new Error(
-      "Unable to connect. Please check your internet connection.",
-    );
+  } catch (error: unknown) {
+    throw toUserFacingAuthError(error);
   }
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {
-  if (DEV_MODE) return devSessionActive ? MOCK_USER : null;
-
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return null;
+    if (!user) {
+      if (DEV_MODE && devSessionActive) return devBypassProfile;
+      return null;
+    }
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -125,16 +168,19 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 }
 
 export async function getSession() {
-  if (DEV_MODE) {
-    return devSessionActive ? { user: { id: MOCK_USER.user_id } } : null;
-  }
-
   try {
     const {
       data: { session },
     } = await supabase.auth.getSession();
+    if (session) return session;
+    if (DEV_MODE && devSessionActive) {
+      return { user: { id: devBypassProfile.user_id } };
+    }
     return session;
   } catch {
+    if (DEV_MODE && devSessionActive) {
+      return { user: { id: devBypassProfile.user_id } };
+    }
     return null;
   }
 }

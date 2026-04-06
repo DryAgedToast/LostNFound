@@ -1,5 +1,9 @@
 import { Colors, Spacing } from "@/constants/theme";
 import { DEV_MODE } from "@/lib/auth";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { getMockHotspots, getMockItems } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import type { BuildingType, Hotspot, Item } from "@/types";
@@ -106,6 +110,9 @@ export default function HotspotsScreen() {
 
       setHotspots(withCounts);
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       const message =
         err instanceof Error ? err.message : "Failed to load hotspots.";
       setError(message);
@@ -171,7 +178,10 @@ export default function HotspotsScreen() {
 
       if (itemsError) throw itemsError;
       setModalItems((data ?? []) as Item[]);
-    } catch {
+    } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setModalItems([]);
     }
 
@@ -224,14 +234,14 @@ export default function HotspotsScreen() {
             styles.countBadge,
             {
               backgroundColor:
-                item.itemCount > 0 ? "#FEF3E2" : colors.backgroundElement,
+                item.itemCount > 0 ? "#E4E6EB" : colors.backgroundElement,
             },
           ]}
         >
           <Text
             style={[
               styles.countText,
-              { color: item.itemCount > 0 ? "#D97706" : colors.textSecondary },
+              { color: item.itemCount > 0 ? "#1877F2" : colors.textSecondary },
             ]}
           >
             {item.itemCount} {item.itemCount === 1 ? "item" : "items"} here
@@ -260,7 +270,7 @@ export default function HotspotsScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
         </View>
       ) : (
         <FlatList
@@ -272,8 +282,8 @@ export default function HotspotsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#208AEF"
-              colors={["#208AEF"]}
+              tintColor="#1877F2"
+              colors={["#1877F2"]}
             />
           }
           ListEmptyComponent={
@@ -361,7 +371,7 @@ function HotspotModal({
           activeOpacity={0.7}
           style={modalStyles.closeButton}
         >
-          <Text style={[modalStyles.closeButtonText, { color: "#208AEF" }]}>
+          <Text style={[modalStyles.closeButtonText, { color: "#1877F2" }]}>
             Close
           </Text>
         </TouchableOpacity>
@@ -435,7 +445,7 @@ function HotspotModal({
         {loading ? (
           <ActivityIndicator
             size="large"
-            color="#208AEF"
+            color="#1877F2"
             style={modalStyles.loader}
           />
         ) : items.length === 0 ? (
@@ -528,12 +538,12 @@ const styles = StyleSheet.create({
   },
   errorBox: {
     margin: Spacing.three,
-    backgroundColor: "#FDECEA",
+    backgroundColor: "#E4E6EB",
     borderRadius: 8,
     padding: Spacing.three,
   },
   errorText: {
-    color: "#C0392B",
+    color: "#65676B",
     fontSize: 14,
   },
   listContent: {
@@ -681,7 +691,7 @@ const modalStyles = StyleSheet.create({
   },
   thumbnailPlaceholderText: {
     fontSize: 22,
-    color: "#9CA3AF",
+    color: "#8A8D91",
   },
   itemInfo: {
     flex: 1,
@@ -696,13 +706,13 @@ const modalStyles = StyleSheet.create({
     textTransform: "capitalize",
   },
   viewButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     borderRadius: 8,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
   viewButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "600",
   },

@@ -41,7 +41,7 @@ export default function MessageBubble({
           style={[
             styles.bubble,
             isOwn
-              ? [styles.bubbleOwn, { backgroundColor: '#208AEF' }]
+              ? [styles.bubbleOwn, { backgroundColor: '#1877F2' }]
               : [styles.bubbleOther, { backgroundColor: colors.backgroundElement }],
           ]}
         >
@@ -104,11 +104,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   contentOwn: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   timestamp: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#8A8D91',
     marginTop: 2,
   },
   timestampOwn: {

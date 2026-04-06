@@ -1,6 +1,10 @@
 import ClaimStatusBadge from "@/components/ClaimStatusBadge";
 import MessageBubble from "@/components/MessageBubble";
 import { Colors, Spacing } from "@/constants/theme";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { subscribeToMessages, unsubscribeFromClaim } from "@/lib/realtime";
 import { supabase } from "@/lib/supabase";
 import type { Claim, ClaimStatus, MessageWithSender, Profile } from "@/types";
@@ -83,6 +87,9 @@ export default function MessageScreen() {
       if (msgError) throw msgError;
       setMessages((msgData as unknown as MessageWithSender[]) ?? []);
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       const message =
         err instanceof Error ? err.message : "Failed to load messages.";
       setError(message);
@@ -135,7 +142,10 @@ export default function MessageScreen() {
       });
 
       if (sendError) throw sendError;
-    } catch {
+    } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       // Restore the text so the user doesn't lose their message
       setInputText(content);
       setError("Unable to send. Check your connection.");
@@ -154,7 +164,7 @@ export default function MessageScreen() {
       <SafeAreaView
         style={[styles.centered, { backgroundColor: colors.background }]}
       >
-        <ActivityIndicator size="large" color="#208AEF" />
+        <ActivityIndicator size="large" color="#1877F2" />
       </SafeAreaView>
     );
   }
@@ -262,7 +272,7 @@ export default function MessageScreen() {
             activeOpacity={0.8}
           >
             {sending ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.sendButtonText}>Send</Text>
             )}
@@ -307,12 +317,12 @@ const styles = StyleSheet.create({
   },
   errorBox: {
     margin: Spacing.three,
-    backgroundColor: "#FDECEA",
+    backgroundColor: "#E4E6EB",
     borderRadius: 8,
     padding: Spacing.three,
   },
   errorText: {
-    color: "#C0392B",
+    color: "#65676B",
     fontSize: 14,
   },
   inputRow: {
@@ -333,7 +343,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   sendButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     borderRadius: 20,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
@@ -346,7 +356,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sendButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "600",
   },

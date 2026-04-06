@@ -1,5 +1,15 @@
 import { Colors, Spacing } from "@/constants/theme";
-import { signIn } from "@/lib/auth";
+import {
+  DEV_LOGIN_EMAIL,
+  DEV_LOGIN_PASSWORD,
+  DEV_MODE,
+  devBypassLogin,
+  signIn,
+} from "@/lib/auth";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -23,6 +33,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +67,27 @@ export default function LoginScreen() {
         err instanceof Error
           ? err.message
           : "Unable to connect. Please check your internet connection.";
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDevLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const { role } = await devBypassLogin();
+      if (role === "staff" || role === "admin") {
+        router.replace("/staff/dashboard");
+      } else {
+        router.replace("/(tabs)/");
+      }
+    } catch {
+      setError("Unable to start dev bypass session.");
     } finally {
       setLoading(false);
     }
@@ -94,7 +125,7 @@ export default function LoginScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.placeholder}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -103,16 +134,26 @@ export default function LoginScreen() {
             />
 
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor={colors.textSecondary}
-              secureTextEntry
-              textContentType="password"
-              editable={!loading}
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.placeholder}
+                secureTextEntry={!showPassword}
+                textContentType="password"
+                editable={!loading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword((prev) => !prev)}
+                disabled={loading}
+              >
+                <Text style={styles.toggleText}>
+                  {showPassword ? "Hide" : "Show"}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -121,7 +162,7 @@ export default function LoginScreen() {
               activeOpacity={0.8}
             >
               {loading ? (
-                <ActivityIndicator color="#ffffff" />
+                <ActivityIndicator color={colors.backgroundElement} />
               ) : (
                 <Text style={styles.buttonText}>Log In</Text>
               )}
@@ -137,7 +178,24 @@ export default function LoginScreen() {
                 <Text style={styles.linkHighlight}>Sign up</Text>
               </Text>
             </TouchableOpacity>
+
           </View>
+
+          {DEV_MODE && (
+            <View style={styles.devBypassRow}>
+              {DEV_LOGIN_EMAIL.length > 0 && (
+                <Text style={styles.devHintText}>
+                  Dev test login: {DEV_LOGIN_EMAIL}
+                  {DEV_LOGIN_PASSWORD.length > 0
+                    ? ` / ${DEV_LOGIN_PASSWORD}`
+                    : ""}
+                </Text>
+              )}
+              <TouchableOpacity onPress={handleDevLogin} disabled={loading}>
+                <Text style={styles.devBypassText}>Dev Login (Bypass)</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -175,16 +233,26 @@ function makeStyles(colors: typeof Colors.light) {
       textAlign: "center",
     },
     form: {
+      backgroundColor: colors.backgroundElement,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: Spacing.three,
+      shadowColor: "#000000",
+      shadowOpacity: 0.08,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 12,
+      elevation: 2,
       gap: Spacing.two,
     },
     errorBox: {
-      backgroundColor: "#FDECEA",
+      backgroundColor: colors.backgroundSelected,
       borderRadius: 8,
       padding: Spacing.three,
       marginBottom: Spacing.two,
     },
     errorText: {
-      color: "#C0392B",
+      color: colors.textSecondary,
       fontSize: 14,
     },
     label: {
@@ -195,19 +263,41 @@ function makeStyles(colors: typeof Colors.light) {
       marginTop: Spacing.two,
     },
     input: {
-      backgroundColor: colors.backgroundElement,
+      backgroundColor: colors.background,
       borderRadius: 10,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.three,
-      fontSize: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 15,
       color: colors.text,
       borderWidth: 1,
-      borderColor: colors.backgroundSelected,
+      borderColor: colors.border,
+    },
+    passwordRow: {
+      backgroundColor: colors.background,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: Spacing.two,
+    },
+    passwordInput: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.text,
+    },
+    toggleText: {
+      color: colors.primary,
+      fontSize: 14,
+      fontWeight: "600",
     },
     button: {
-      backgroundColor: "#208AEF",
+      backgroundColor: colors.primary,
       borderRadius: 10,
-      paddingVertical: Spacing.three,
+      paddingVertical: 14,
       alignItems: "center",
       marginTop: Spacing.three,
     },
@@ -215,7 +305,7 @@ function makeStyles(colors: typeof Colors.light) {
       opacity: 0.6,
     },
     buttonText: {
-      color: "#ffffff",
+      color: colors.backgroundElement,
       fontSize: 16,
       fontWeight: "700",
     },
@@ -228,8 +318,22 @@ function makeStyles(colors: typeof Colors.light) {
       color: colors.textSecondary,
     },
     linkHighlight: {
-      color: "#208AEF",
+      color: colors.primary,
       fontWeight: "600",
+    },
+    devBypassRow: {
+      alignItems: "center",
+      marginTop: Spacing.two,
+    },
+    devBypassText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: "500",
+    },
+    devHintText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      marginBottom: Spacing.one,
     },
   });
 }

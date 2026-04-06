@@ -4,12 +4,15 @@ import type { Database } from "./database.types";
 // Use placeholder URLs for demo mode when env vars are missing
 const supabaseUrl =
   process.env.EXPO_PUBLIC_SUPABASE_URL || "https://demo.supabase.co";
+const supabaseKey =
+  process.env.EXPO_PUBLIC_SUPABASE_KEY ||
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseAnonKey =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "demo-key-placeholder";
+  supabaseKey || "demo-key-placeholder";
 
 if (
   !process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+  !(process.env.EXPO_PUBLIC_SUPABASE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)
 ) {
   console.warn(
     "[LostNFound] Supabase env vars are missing. Running in offline-safe mode.",

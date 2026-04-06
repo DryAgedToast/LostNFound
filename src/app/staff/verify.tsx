@@ -283,7 +283,7 @@ function VerifyContent() {
         style={[styles.root, { backgroundColor: colors.background }]}
       >
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
           <Text
             style={[styles.processingText, { color: colors.textSecondary }]}
           >
@@ -302,7 +302,7 @@ function VerifyContent() {
         style={[styles.root, { backgroundColor: colors.background }]}
       >
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
         </View>
       </SafeAreaView>
     );
@@ -314,7 +314,7 @@ function VerifyContent() {
         style={[styles.root, { backgroundColor: colors.background }]}
       >
         <View style={styles.centered}>
-          <Text style={[styles.errorText, { color: "#EF4444" }]}>
+          <Text style={[styles.errorText, { color: "#65676B" }]}>
             {dataError ?? "Claim not found."}
           </Text>
           <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
@@ -516,25 +516,25 @@ const styles = StyleSheet.create({
   },
   // Banners
   successBanner: {
-    backgroundColor: "#D1FAE5",
+    backgroundColor: "#E4E6EB",
     borderRadius: 8,
     padding: Spacing.three,
     marginBottom: Spacing.three,
     alignItems: "center",
   },
   successBannerText: {
-    color: "#065F46",
+    color: "#1C1E21",
     fontSize: 16,
     fontWeight: "700",
   },
   errorBanner: {
-    backgroundColor: "#FDECEA",
+    backgroundColor: "#E4E6EB",
     borderRadius: 8,
     padding: Spacing.three,
     marginBottom: Spacing.three,
   },
   errorBannerText: {
-    color: "#C0392B",
+    color: "#65676B",
     fontSize: 14,
     marginBottom: Spacing.two,
   },
@@ -542,20 +542,20 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   retryInlineText: {
-    color: "#208AEF",
+    color: "#1877F2",
     fontSize: 14,
     fontWeight: "600",
   },
   // Action buttons
   scanButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     borderRadius: 10,
     paddingVertical: Spacing.three,
     alignItems: "center",
     marginBottom: Spacing.two,
   },
   scanButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
@@ -571,14 +571,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   rejectButton: {
-    backgroundColor: "#EF4444",
+    backgroundColor: "#65676B",
     borderRadius: 10,
     paddingVertical: Spacing.three,
     alignItems: "center",
     marginBottom: Spacing.two,
   },
   rejectButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
   },
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   cameraLabel: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "700",
   },
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     width: 300,
     height: 190,
     borderWidth: 2,
-    borderColor: "#208AEF",
+    borderColor: "#1877F2",
     borderRadius: 12,
     backgroundColor: "transparent",
   },
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     borderWidth: 4,
-    borderColor: "#ffffff",
+    borderColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
@@ -632,14 +632,14 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
   },
   cancelScanButton: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.four,
   },
   cancelScanText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -654,13 +654,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.three,
   },
   retryButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.four,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "600",
   },

@@ -50,7 +50,7 @@ export default function CategoryFilter({ selected, onSelect }: CategoryFilterPro
             style={[
               styles.button,
               {
-                backgroundColor: isActive ? '#208AEF' : colors.backgroundElement,
+                backgroundColor: isActive ? '#1877F2' : colors.backgroundElement,
               },
             ]}
             activeOpacity={0.75}
@@ -59,7 +59,7 @@ export default function CategoryFilter({ selected, onSelect }: CategoryFilterPro
               style={[
                 styles.label,
                 {
-                  color: isActive ? '#ffffff' : colors.textSecondary,
+                  color: isActive ? '#FFFFFF' : colors.textSecondary,
                 },
               ]}
             >

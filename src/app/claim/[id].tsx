@@ -15,6 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from '@/lib/db-alert';
 import { Colors, Spacing } from '@/constants/theme';
 import type { Item, Profile, CustomQuestion, CustomAnswer } from '@/types';
 
@@ -60,6 +64,9 @@ export default function ClaimScreen() {
       q.forEach((cq: CustomQuestion) => { init[cq.id] = ''; });
       setAnswers(init);
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setError(err instanceof Error ? err.message : 'Failed to load item');
     } finally {
       setLoading(false);
@@ -121,6 +128,9 @@ export default function ClaimScreen() {
 
       router.replace('/(tabs)/messages');
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setError(err instanceof Error ? err.message : 'Failed to submit claim');
     } finally {
       setSubmitting(false);
@@ -133,7 +143,7 @@ export default function ClaimScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
         </View>
       </SafeAreaView>
     );
@@ -233,7 +243,7 @@ export default function ClaimScreen() {
             activeOpacity={0.8}
           >
             {submitting ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.submitButtonText}>Submit Claim</Text>
             )}
@@ -266,7 +276,7 @@ function makeStyles(colors: typeof Colors.light) {
       marginBottom: Spacing.three,
     },
     backButtonText: {
-      color: '#208AEF',
+      color: '#1877F2',
       fontSize: 15,
       fontWeight: '600',
     },
@@ -308,13 +318,13 @@ function makeStyles(colors: typeof Colors.light) {
       lineHeight: 20,
     },
     errorBox: {
-      backgroundColor: '#FDECEA',
+      backgroundColor: '#E4E6EB',
       borderRadius: 8,
       padding: Spacing.three,
       marginBottom: Spacing.three,
     },
     errorText: {
-      color: '#C0392B',
+      color: '#65676B',
       fontSize: 14,
     },
     questionBlock: {
@@ -339,7 +349,7 @@ function makeStyles(colors: typeof Colors.light) {
       textAlignVertical: 'top',
     },
     submitButton: {
-      backgroundColor: '#208AEF',
+      backgroundColor: '#1877F2',
       borderRadius: 10,
       paddingVertical: Spacing.three,
       alignItems: 'center',
@@ -349,7 +359,7 @@ function makeStyles(colors: typeof Colors.light) {
       opacity: 0.6,
     },
     submitButtonText: {
-      color: '#ffffff',
+      color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '700',
     },

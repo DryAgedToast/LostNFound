@@ -1,5 +1,9 @@
 import { Colors, Spacing } from "@/constants/theme";
 import { DEV_MODE, getCurrentProfile, signOut } from "@/lib/auth";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { supabase } from "@/lib/supabase";
 import type { Profile, UserRole } from "@/types";
 import { useRouter } from "expo-router";
@@ -19,9 +23,9 @@ const ROLE_BADGE: Record<
   UserRole,
   { label: string; background: string; text: string }
 > = {
-  student: { label: "Student", background: "#EBF4FD", text: "#208AEF" },
-  staff: { label: "Staff", background: "#FEF3E2", text: "#D97706" },
-  admin: { label: "Admin", background: "#FDECEC", text: "#C0392B" },
+  student: { label: "Student", background: "#E4E6EB", text: "#1877F2" },
+  staff: { label: "Staff", background: "#E4E6EB", text: "#1877F2" },
+  admin: { label: "Admin", background: "#E4E6EB", text: "#65676B" },
 };
 
 export default function ProfileScreen() {
@@ -58,6 +62,9 @@ export default function ProfileScreen() {
         setItemCount(count ?? 0);
       }
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       const message =
         err instanceof Error ? err.message : "Failed to load profile.";
       setError(message);
@@ -76,6 +83,9 @@ export default function ProfileScreen() {
       await signOut();
       router.replace("/auth/login");
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       const message = err instanceof Error ? err.message : "Sign out failed.";
       setError(message);
       setLoggingOut(false);
@@ -88,7 +98,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
         </View>
       </SafeAreaView>
     );
@@ -163,7 +173,7 @@ export default function ProfileScreen() {
           activeOpacity={0.8}
         >
           {loggingOut ? (
-            <ActivityIndicator color="#C0392B" />
+            <ActivityIndicator color="#65676B" />
           ) : (
             <Text style={styles.logoutText}>Log Out</Text>
           )}
@@ -196,7 +206,7 @@ function makeStyles(colors: typeof Colors.light) {
       width: 80,
       height: 80,
       borderRadius: 40,
-      backgroundColor: "#208AEF",
+      backgroundColor: "#1877F2",
       justifyContent: "center",
       alignItems: "center",
       marginBottom: Spacing.three,
@@ -204,7 +214,7 @@ function makeStyles(colors: typeof Colors.light) {
     avatarInitial: {
       fontSize: 32,
       fontWeight: "700",
-      color: "#ffffff",
+      color: "#FFFFFF",
     },
     displayName: {
       fontSize: 22,
@@ -228,13 +238,13 @@ function makeStyles(colors: typeof Colors.light) {
       fontWeight: "700",
     },
     errorBox: {
-      backgroundColor: "#FDECEA",
+      backgroundColor: "#E4E6EB",
       borderRadius: 8,
       padding: Spacing.three,
       marginBottom: Spacing.three,
     },
     errorText: {
-      color: "#C0392B",
+      color: "#65676B",
       fontSize: 14,
     },
     statsCard: {
@@ -247,7 +257,7 @@ function makeStyles(colors: typeof Colors.light) {
     statsValue: {
       fontSize: 36,
       fontWeight: "800",
-      color: "#208AEF",
+      color: "#1877F2",
     },
     statsLabel: {
       fontSize: 14,
@@ -284,7 +294,7 @@ function makeStyles(colors: typeof Colors.light) {
     },
     logoutButton: {
       borderWidth: 1.5,
-      borderColor: "#C0392B",
+      borderColor: "#65676B",
       borderRadius: 10,
       paddingVertical: Spacing.three,
       alignItems: "center",
@@ -293,7 +303,7 @@ function makeStyles(colors: typeof Colors.light) {
       opacity: 0.6,
     },
     logoutText: {
-      color: "#C0392B",
+      color: "#65676B",
       fontSize: 16,
       fontWeight: "700",
     },

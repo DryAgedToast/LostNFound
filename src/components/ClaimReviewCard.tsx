@@ -97,7 +97,7 @@ export default function ClaimReviewCard({
             styles.badge,
             {
               backgroundColor: claim.identity_verified
-                ? "#D1FAE5"
+                ? "#E4E6EB"
                 : colors.backgroundSelected,
             },
           ]}
@@ -107,7 +107,7 @@ export default function ClaimReviewCard({
               styles.badgeText,
               {
                 color: claim.identity_verified
-                  ? "#065F46"
+                  ? "#1C1E21"
                   : colors.textSecondary,
               },
             ]}
@@ -120,7 +120,7 @@ export default function ClaimReviewCard({
       {/* Action buttons */}
       {isLoading ? (
         <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color="#208AEF" />
+          <ActivityIndicator size="small" color="#1877F2" />
         </View>
       ) : (
         <View style={styles.buttonRow}>
@@ -129,13 +129,13 @@ export default function ClaimReviewCard({
             style={[
               styles.button,
               styles.rejectButton,
-              { borderColor: "#EF4444" },
+              { borderColor: "#65676B" },
             ]}
             onPress={onReject}
             disabled={isLoading}
             activeOpacity={0.8}
           >
-            <Text style={[styles.buttonText, { color: "#EF4444" }]}>
+            <Text style={[styles.buttonText, { color: "#65676B" }]}>
               Reject
             </Text>
           </TouchableOpacity>
@@ -145,13 +145,13 @@ export default function ClaimReviewCard({
             style={[
               styles.button,
               styles.approveButton,
-              { backgroundColor: "#10B981" },
+              { backgroundColor: "#42B72A" },
             ]}
             onPress={onApprove}
             disabled={isLoading}
             activeOpacity={0.8}
           >
-            <Text style={[styles.buttonText, { color: "#ffffff" }]}>
+            <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
               Approve
             </Text>
           </TouchableOpacity>
@@ -161,13 +161,13 @@ export default function ClaimReviewCard({
             style={[
               styles.button,
               styles.approveIdButton,
-              { backgroundColor: "#208AEF" },
+              { backgroundColor: "#1877F2" },
             ]}
             onPress={onApproveWithId}
             disabled={isLoading}
             activeOpacity={0.8}
           >
-            <Text style={[styles.buttonText, { color: "#ffffff" }]}>
+            <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
               Approve{"\n"}with ID
             </Text>
           </TouchableOpacity>

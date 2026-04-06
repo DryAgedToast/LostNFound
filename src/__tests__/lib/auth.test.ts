@@ -16,11 +16,16 @@ jest.mock("@supabase/supabase-js", () => ({
   }),
 }));
 
-import { getCurrentProfile, getSession, signIn, signOut } from "../../lib/auth";
+import {
+  devBypassLogin,
+  getCurrentProfile,
+  getSession,
+  signOut,
+} from "../../lib/auth";
 
 describe("auth DEV_MODE behavior", () => {
-  it("returns mock user on signIn/getCurrentProfile", async () => {
-    const result = await signIn("test@example.com", "password123");
+  it("returns mock user on devBypassLogin/getCurrentProfile", async () => {
+    const result = await devBypassLogin();
     const profile = await getCurrentProfile();
 
     expect(result.profile.email).toBe("test@example.com");
@@ -29,7 +34,7 @@ describe("auth DEV_MODE behavior", () => {
   });
 
   it("signOut clears local DEV_MODE session", async () => {
-    await signIn("test@example.com", "password123");
+    await devBypassLogin();
     expect(await getSession()).not.toBeNull();
 
     await signOut();

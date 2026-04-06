@@ -1,5 +1,9 @@
 import ClaimStatusBadge from "@/components/ClaimStatusBadge";
 import { Colors, Spacing } from "@/constants/theme";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { supabase } from "@/lib/supabase";
 import type { Claim, Item, Profile } from "@/types";
 import { useRouter } from "expo-router";
@@ -77,6 +81,9 @@ export default function MessagesScreen() {
       setClaimsOnMyItems((onMyItems ?? []) as ClaimOnMyItem[]);
       setMyClaims((myClaimsData ?? []) as MyClaim[]);
     } catch (err: unknown) {
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setError(err instanceof Error ? err.message : "Failed to load inbox");
     } finally {
       setLoading(false);
@@ -99,7 +106,7 @@ export default function MessagesScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
         </View>
       </SafeAreaView>
     );
@@ -115,7 +122,7 @@ export default function MessagesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#208AEF"
+            tintColor="#1877F2"
           />
         }
         ListHeaderComponent={
@@ -235,13 +242,13 @@ function makeStyles(colors: typeof Colors.light) {
       marginBottom: Spacing.four,
     },
     errorBox: {
-      backgroundColor: "#FDECEA",
+      backgroundColor: "#E4E6EB",
       borderRadius: 8,
       padding: Spacing.three,
       marginBottom: Spacing.three,
     },
     errorText: {
-      color: "#C0392B",
+      color: "#65676B",
       fontSize: 14,
     },
     sectionHeader: {

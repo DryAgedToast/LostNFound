@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { DEV_MODE } from "@/lib/auth";
+import { showDatabaseNotConnectedPopup } from "@/lib/db-alert";
 import { usePathname, useRouter } from "expo-router";
 import React from "react";
 import {
@@ -76,9 +77,7 @@ export default function Sidebar() {
 
   const handleLogin = () => {
     if (DEV_MODE) {
-      alert(
-        "Login is only available when database is connected. Currently in demo mode.",
-      );
+      showDatabaseNotConnectedPopup();
     } else {
       router.push("/auth/login" as any);
     }
@@ -220,7 +219,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   sidebarLabelPrimary: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontWeight: "600",
   },
   divider: {

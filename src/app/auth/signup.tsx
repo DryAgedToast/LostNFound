@@ -1,5 +1,9 @@
 import { Colors, Spacing } from "@/constants/theme";
 import { signUp } from "@/lib/auth";
+import {
+  isDatabaseUnavailableError,
+  showDatabaseNotConnectedPopup,
+} from "@/lib/db-alert";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -25,6 +29,8 @@ export default function SignupScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +64,9 @@ export default function SignupScreen() {
         err instanceof Error
           ? err.message
           : "Unable to connect. Please check your internet connection.";
+      if (isDatabaseUnavailableError(err)) {
+        showDatabaseNotConnectedPopup();
+      }
       setError(message);
     } finally {
       setLoading(false);
@@ -96,7 +105,7 @@ export default function SignupScreen() {
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Your name"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.placeholder}
               autoCapitalize="words"
               autoCorrect={false}
               textContentType="name"
@@ -109,7 +118,7 @@ export default function SignupScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.placeholder}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -118,28 +127,48 @@ export default function SignupScreen() {
             />
 
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="At least 6 characters"
-              placeholderTextColor={colors.textSecondary}
-              secureTextEntry
-              textContentType="newPassword"
-              editable={!loading}
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="At least 6 characters"
+                placeholderTextColor={colors.placeholder}
+                secureTextEntry={!showPassword}
+                textContentType="newPassword"
+                editable={!loading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword((prev) => !prev)}
+                disabled={loading}
+              >
+                <Text style={styles.toggleText}>
+                  {showPassword ? "Hide" : "Show"}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Re-enter your password"
-              placeholderTextColor={colors.textSecondary}
-              secureTextEntry
-              textContentType="newPassword"
-              editable={!loading}
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={styles.passwordInput}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Re-enter your password"
+                placeholderTextColor={colors.placeholder}
+                secureTextEntry={!showConfirmPassword}
+                textContentType="newPassword"
+                editable={!loading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword((prev) => !prev)}
+                disabled={loading}
+              >
+                <Text style={styles.toggleText}>
+                  {showConfirmPassword ? "Hide" : "Show"}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -148,7 +177,7 @@ export default function SignupScreen() {
               activeOpacity={0.8}
             >
               {loading ? (
-                <ActivityIndicator color="#ffffff" />
+                <ActivityIndicator color={colors.backgroundElement} />
               ) : (
                 <Text style={styles.buttonText}>Create Account</Text>
               )}
@@ -202,16 +231,26 @@ function makeStyles(colors: typeof Colors.light) {
       textAlign: "center",
     },
     form: {
+      backgroundColor: colors.backgroundElement,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: Spacing.three,
+      shadowColor: "#000000",
+      shadowOpacity: 0.08,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 12,
+      elevation: 2,
       gap: Spacing.two,
     },
     errorBox: {
-      backgroundColor: "#FDECEA",
+      backgroundColor: colors.backgroundSelected,
       borderRadius: 8,
       padding: Spacing.three,
       marginBottom: Spacing.two,
     },
     errorText: {
-      color: "#C0392B",
+      color: colors.textSecondary,
       fontSize: 14,
     },
     label: {
@@ -222,19 +261,41 @@ function makeStyles(colors: typeof Colors.light) {
       marginTop: Spacing.two,
     },
     input: {
-      backgroundColor: colors.backgroundElement,
+      backgroundColor: colors.background,
       borderRadius: 10,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.three,
-      fontSize: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 15,
       color: colors.text,
       borderWidth: 1,
-      borderColor: colors.backgroundSelected,
+      borderColor: colors.border,
+    },
+    passwordRow: {
+      backgroundColor: colors.background,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: Spacing.two,
+    },
+    passwordInput: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.text,
+    },
+    toggleText: {
+      color: colors.primary,
+      fontSize: 14,
+      fontWeight: "600",
     },
     button: {
-      backgroundColor: "#208AEF",
+      backgroundColor: "#42B72A",
       borderRadius: 10,
-      paddingVertical: Spacing.three,
+      paddingVertical: 14,
       alignItems: "center",
       marginTop: Spacing.three,
     },
@@ -242,7 +303,7 @@ function makeStyles(colors: typeof Colors.light) {
       opacity: 0.6,
     },
     buttonText: {
-      color: "#ffffff",
+      color: colors.backgroundElement,
       fontSize: 16,
       fontWeight: "700",
     },
@@ -255,7 +316,7 @@ function makeStyles(colors: typeof Colors.light) {
       color: colors.textSecondary,
     },
     linkHighlight: {
-      color: "#208AEF",
+      color: colors.primary,
       fontWeight: "600",
     },
   });

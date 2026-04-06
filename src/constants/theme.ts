@@ -9,24 +9,28 @@ import { Platform } from "react-native";
 
 export const Colors = {
   light: {
-    text: "#000000",
-    background: "#ffffff",
-    backgroundElement: "#F5F6F7", // Light gray for sidebar/cards
-    backgroundSelected: "#E4E6EB", // Slightly darker gray for hover
-    textSecondary: "#65676B", // Facebook-style gray text
-    primary: "#208AEF", // Blue accent color
-    primaryHover: "#1877F2", // Facebook blue on hover
-    border: "#CED0D4", // Light border color
+    text: "#1C1E21",
+    background: "#F0F2F5",
+    backgroundElement: "#FFFFFF",
+    backgroundSelected: "#E4E6EB",
+    textSecondary: "#65676B",
+    primary: "#1877F2",
+    primaryHover: "#166FE5",
+    border: "#E4E6EB",
+    placeholder: "#8A8D91",
+    green: "#42B72A",
   },
   dark: {
-    text: "#E4E6EB",
-    background: "#18191A",
-    backgroundElement: "#242526",
-    backgroundSelected: "#3A3B3C",
-    textSecondary: "#B0B3B8",
-    primary: "#208AEF",
-    primaryHover: "#1877F2",
-    border: "#3E4042",
+    text: "#1C1E21",
+    background: "#F0F2F5",
+    backgroundElement: "#FFFFFF",
+    backgroundSelected: "#E4E6EB",
+    textSecondary: "#65676B",
+    primary: "#1877F2",
+    primaryHover: "#166FE5",
+    border: "#E4E6EB",
+    placeholder: "#8A8D91",
+    green: "#42B72A",
   },
 } as const;
 

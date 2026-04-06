@@ -16,10 +16,10 @@ interface ItemCardProps {
 }
 
 const STATUS_COLORS: Record<ItemStatus, string> = {
-  unclaimed: "#208AEF",
-  at_hotspot: "#F59E0B",
-  claimed: "#10B981",
-  pending: "#6B7280",
+  unclaimed: "#1877F2",
+  at_hotspot: "#1877F2",
+  claimed: "#42B72A",
+  pending: "#65676B",
 };
 
 const STATUS_LABELS: Record<ItemStatus, string> = {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#D1D5DB",
+    backgroundColor: "#E4E6EB",
   },
   placeholderText: {
     fontSize: 12,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   statusText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "700",
     textTransform: "uppercase",

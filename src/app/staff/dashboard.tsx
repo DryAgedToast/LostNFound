@@ -239,7 +239,7 @@ function DashboardContent() {
         style={[styles.root, { backgroundColor: colors.background }]}
       >
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#208AEF" />
+          <ActivityIndicator size="large" color="#1877F2" />
         </View>
       </SafeAreaView>
     );
@@ -247,7 +247,7 @@ function DashboardContent() {
 
   const isAdmin = currentProfile?.role === "admin";
   const roleLabel = isAdmin ? "Admin" : "Staff";
-  const roleBadgeColor = isAdmin ? "#7C3AED" : "#208AEF";
+  const roleBadgeColor = isAdmin ? "#1877F2" : "#1877F2";
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
@@ -370,7 +370,7 @@ function DashboardContent() {
                 styles.theftCard,
                 {
                   backgroundColor: colors.backgroundElement,
-                  borderLeftColor: "#EF4444",
+                  borderLeftColor: "#65676B",
                 },
               ]}
             >
@@ -415,7 +415,7 @@ function DashboardContent() {
                     activeOpacity={0.8}
                   >
                     {resolvingId === tc.id ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
+                      <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <Text style={styles.resolveButtonText}>Resolve</Text>
                     )}
@@ -452,7 +452,7 @@ function DashboardContent() {
 
           {modalLoading ? (
             <View style={styles.centered}>
-              <ActivityIndicator size="large" color="#208AEF" />
+              <ActivityIndicator size="large" color="#1877F2" />
             </View>
           ) : (
             <ScrollView
@@ -488,7 +488,7 @@ function DashboardContent() {
                             : colors.backgroundElement,
                         borderColor:
                           selectedItemId === item.id
-                            ? "#208AEF"
+                            ? "#1877F2"
                             : colors.backgroundSelected,
                       },
                     ]}
@@ -501,7 +501,7 @@ function DashboardContent() {
                         {
                           borderColor:
                             selectedItemId === item.id
-                              ? "#208AEF"
+                              ? "#1877F2"
                               : colors.textSecondary,
                         },
                       ]}
@@ -557,7 +557,7 @@ function DashboardContent() {
                             : colors.backgroundElement,
                         borderColor:
                           selectedHotspotId === hotspot.id
-                            ? "#208AEF"
+                            ? "#1877F2"
                             : colors.backgroundSelected,
                       },
                     ]}
@@ -570,7 +570,7 @@ function DashboardContent() {
                         {
                           borderColor:
                             selectedHotspotId === hotspot.id
-                              ? "#208AEF"
+                              ? "#1877F2"
                               : colors.textSecondary,
                         },
                       ]}
@@ -636,7 +636,7 @@ function DashboardContent() {
                 activeOpacity={0.8}
               >
                 {dropoffLoading ? (
-                  <ActivityIndicator color="#ffffff" />
+                  <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={styles.confirmButtonText}>Confirm Drop-off</Text>
                 )}
@@ -686,21 +686,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   roleBadgeText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   dropoffButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     borderRadius: 10,
     paddingVertical: Spacing.three,
     alignItems: "center",
     marginBottom: Spacing.four,
   },
   dropoffButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
@@ -745,24 +745,24 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   claimCountBadge: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: "#E4E6EB",
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.half,
     borderRadius: 6,
   },
   claimCountText: {
-    color: "#92400E",
+    color: "#1C1E21",
     fontSize: 11,
     fontWeight: "600",
   },
   viewClaimsButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     paddingHorizontal: Spacing.two + Spacing.half,
     paddingVertical: Spacing.one + Spacing.half,
     borderRadius: 8,
   },
   viewClaimsText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -803,13 +803,13 @@ const styles = StyleSheet.create({
   },
   resolveButton: {
     flex: 1,
-    backgroundColor: "#10B981",
+    backgroundColor: "#42B72A",
     borderRadius: 8,
     paddingVertical: Spacing.two,
     alignItems: "center",
   },
   resolveButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -827,7 +827,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#E4E6EB",
   },
   modalTitle: {
     fontSize: 18,
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
   },
   selectRowInfo: {
     flex: 1,
@@ -887,25 +887,25 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   confirmButton: {
-    backgroundColor: "#208AEF",
+    backgroundColor: "#1877F2",
     borderRadius: 10,
     paddingVertical: Spacing.three,
     alignItems: "center",
     marginTop: Spacing.four,
   },
   confirmButtonText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
   errorBox: {
-    backgroundColor: "#FDECEA",
+    backgroundColor: "#E4E6EB",
     borderRadius: 8,
     padding: Spacing.three,
     marginBottom: Spacing.three,
   },
   errorText: {
-    color: "#C0392B",
+    color: "#65676B",
     fontSize: 14,
   },
 });

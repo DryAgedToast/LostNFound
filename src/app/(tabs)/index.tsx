@@ -119,7 +119,7 @@ export default function FeedScreen() {
       <SafeAreaView
         style={[styles.centered, { backgroundColor: colors.background }]}
       >
-        <ActivityIndicator size="large" color="#208AEF" />
+        <ActivityIndicator size="large" color="#1877F2" />
       </SafeAreaView>
     );
   }

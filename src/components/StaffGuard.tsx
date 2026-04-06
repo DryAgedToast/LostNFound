@@ -46,7 +46,7 @@ export default function StaffGuard({ children }: StaffGuardProps) {
   if (checking) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#208AEF" />
+        <ActivityIndicator size="large" color="#1877F2" />
       </View>
     );
   }
