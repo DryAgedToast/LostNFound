@@ -1,0 +1,85 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║     LostNFound - Ready for Expo Go Demo!                    ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+📱 QUICK START
+──────────────────────────────────────────────────────────────
+
+1. Install Expo Go on your phone:
+   - iPhone: App Store → Search "Expo Go"
+   - Android: Play Store → Search "Expo Go"
+
+2. Start the development server:
+   $ npm start
+
+3. Scan QR code with Expo Go app (or press 'w' for web)
+
+4. Login with ANY credentials (e.g., test@test.com / password123)
+
+
+✨ WHAT YOU'LL SEE
+──────────────────────────────────────────────────────────────
+
+✅ 4 sample items in the feed
+✅ 2 hotspot locations
+✅ Working search & filters
+✅ Full navigation between screens
+✅ Profile with mock user data
+✅ All forms with validation
+
+
+📚 DOCUMENTATION
+──────────────────────────────────────────────────────────────
+
+📄 EXPO_TESTING_GUIDE.md    - Complete installation guide
+📄 DEMO_CHECKLIST.md        - Verification checklist
+
+
+🔌 NO CONNECTION NEEDED
+──────────────────────────────────────────────────────────────
+
+✓ Database: Using mock data
+✓ Auth: Mock user login
+✓ ID Analyzer: Shows "not configured" message
+✓ All external APIs: Bypassed in demo mode
+
+
+🚀 WHEN READY FOR PRODUCTION
+──────────────────────────────────────────────────────────────
+
+1. Add real credentials to .env file
+2. Set DEV_MODE = false in src/lib/auth.ts
+3. Reload app - everything will work with real backend!
+
+
+💡 TIPS
+──────────────────────────────────────────────────────────────
+
+• Keep phone & Mac on same WiFi network
+• Use real device for best mobile experience
+• Press 'w' for quick web testing
+• Check terminal for any error messages
+
+
+🆘 TROUBLESHOOTING
+──────────────────────────────────────────────────────────────
+
+QR not scanning?
+$ npx expo start --clear
+
+Port conflict?
+$ lsof -ti:8081 | xargs kill -9
+
+App won't load?
+• Restart Expo Go app
+• Check WiFi connection
+• Try web version first (press 'w')
+
+
+══════════════════════════════════════════════════════════════
+
+Ready to test! Run:  npm start
+
+══════════════════════════════════════════════════════════════
