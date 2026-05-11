@@ -26,6 +26,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow LostNFound to access your camera so you can take item photos."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#1877F2",

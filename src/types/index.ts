@@ -60,6 +60,8 @@ export interface Claim {
   reviewed_at: string | null;
   identity_verified: boolean;
   identity_record_id: string | null;
+  /** Stripe Identity VerificationSession id when claimant completed hosted verification before claim. */
+  stripe_verification_session_id: string | null;
   created_at: string;
 }
 

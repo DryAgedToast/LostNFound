@@ -246,3 +246,7 @@ select id, split_part(email, '@', 1), email, 'student'
 from auth.users
 where email = 'suvilk@udel.edu'
 on conflict (user_id) do nothing;
+
+-- Stripe Identity (claim flow); safe to re-run
+alter table public.claims
+  add column if not exists stripe_verification_session_id text;

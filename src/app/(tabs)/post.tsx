@@ -6,10 +6,11 @@ import {
 } from "@/lib/db-alert";
 import { supabase } from "@/lib/supabase";
 import type { CustomQuestion, Hotspot, ItemCategory, Profile } from "@/types";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -66,6 +67,9 @@ export default function PostScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   // Form state
+  const cameraRef = useRef<CameraView>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [cameraVisible, setCameraVisible] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<ItemCategory>("other");
@@ -136,6 +140,35 @@ export default function PostScreen() {
     }
   }, []);
 
+  const openCamera = useCallback(async () => {
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Please allow camera access to take a photo.",
+        );
+        return;
+      }
+    }
+
+    setCameraVisible(true);
+  }, [cameraPermission?.granted, requestCameraPermission]);
+
+  const takePhoto = useCallback(async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      const captured = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+      if (captured?.uri) {
+        setImageUri(captured.uri);
+      }
+      setCameraVisible(false);
+    } catch {
+      Alert.alert("Camera Error", "Unable to capture photo. Please try again.");
+    }
+  }, []);
+
   const addQuestion = useCallback(() => {
     if (questions.length >= 5) return;
     setQuestions((prev) => [
@@ -159,7 +192,11 @@ export default function PostScreen() {
     posterId: string,
   ): Promise<string> => {
     try {
-      const ext = uri.split(".").pop() ?? "jpg";
+      const maybeExt = uri.split(".").pop()?.toLowerCase();
+      const ext =
+        maybeExt && maybeExt.length <= 5 && /^[a-z0-9]+$/.test(maybeExt)
+          ? maybeExt
+          : "jpg";
       const fileName = `${posterId}-${Date.now()}.${ext}`;
 
       const response = await fetch(uri);
@@ -300,11 +337,27 @@ export default function PostScreen() {
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Tap to choose a photo
+                  Add a photo from camera or library
                 </Text>
               </View>
             )}
           </TouchableOpacity>
+          <View style={styles.photoActionsRow}>
+            <TouchableOpacity
+              style={styles.photoActionButton}
+              onPress={openCamera}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.photoActionText}>Take photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.photoActionButton}
+              onPress={pickImage}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.photoActionText}>Choose from library</Text>
+            </TouchableOpacity>
+          </View>
           {imageUri && (
             <TouchableOpacity onPress={() => setImageUri(null)}>
               <Text style={styles.removePhotoText}>Remove photo</Text>
@@ -593,6 +646,33 @@ export default function PostScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      <Modal
+        visible={cameraVisible}
+        animationType="slide"
+        onRequestClose={() => setCameraVisible(false)}
+      >
+        <View style={styles.cameraContainer}>
+          <CameraView ref={cameraRef} style={styles.camera} facing="back">
+            <View style={styles.cameraOverlay}>
+              <Text style={styles.cameraLabel}>Take Item Photo</Text>
+              <TouchableOpacity
+                style={styles.captureButton}
+                onPress={takePhoto}
+                activeOpacity={0.8}
+              >
+                <View style={styles.captureButtonInner} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cameraCancelButton}
+                onPress={() => setCameraVisible(false)}
+              >
+                <Text style={styles.cameraCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </CameraView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -676,6 +756,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: Spacing.one,
     textAlign: "center",
+  },
+  photoActionsRow: {
+    flexDirection: "row",
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  photoActionButton: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1877F2",
+    paddingVertical: Spacing.two,
+    alignItems: "center",
+  },
+  photoActionText: {
+    color: "#1877F2",
+    fontSize: 13,
+    fontWeight: "600",
   },
   pickerButton: {
     borderRadius: 10,
@@ -792,6 +890,52 @@ const styles = StyleSheet.create({
   modalCancelText: {
     color: "#65676B",
     fontSize: 15,
+    fontWeight: "600",
+  },
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  camera: {
+    flex: 1,
+  },
+  cameraOverlay: {
+    flex: 1,
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Spacing.five,
+  },
+  cameraLabel: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "700",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: 10,
+  },
+  captureButton: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  captureButtonInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#FFFFFF",
+  },
+  cameraCancelButton: {
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.four,
+  },
+  cameraCancelText: {
+    color: "#FFFFFF",
+    fontSize: 16,
     fontWeight: "600",
   },
 });

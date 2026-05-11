@@ -21,7 +21,11 @@ import {
   showDatabaseNotConnectedPopup,
 } from '@/lib/db-alert';
 import { Colors, Spacing } from '@/constants/theme';
+import { openStripeIdentityBeforeClaim } from '@/lib/stripeIdentity';
 import type { Item, Profile, CustomQuestion, CustomAnswer } from '@/types';
+
+const SKIP_STRIPE_IDENTITY =
+  process.env.EXPO_PUBLIC_SKIP_STRIPE_IDENTITY_ON_CLAIM === 'true';
 
 export default function ClaimScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -94,6 +98,22 @@ export default function ClaimScreen() {
     setError(null);
 
     try {
+      let stripeVerificationSessionId: string | null = null;
+
+      if (!SKIP_STRIPE_IDENTITY) {
+        const identity = await openStripeIdentityBeforeClaim(item.id);
+        if (!identity.ok) {
+          setError(identity.error);
+          return;
+        }
+        stripeVerificationSessionId =
+          identity.verificationSessionId ?? null;
+        if (!stripeVerificationSessionId) {
+          setError('Identity check did not return a session id. Try again.');
+          return;
+        }
+      }
+
       let customAnswers: CustomAnswer[];
 
       if (hasCustomQuestions) {
@@ -117,7 +137,10 @@ export default function ClaimScreen() {
         claimant_id: currentProfile.id,
         custom_answers: customAnswers,
         status: 'pending',
-      });
+        ...(stripeVerificationSessionId !== null && {
+          stripe_verification_session_id: stripeVerificationSessionId,
+        }),
+      } as never);
 
       if (insertErr) throw insertErr;
 
@@ -189,7 +212,9 @@ export default function ClaimScreen() {
           <Text style={styles.itemTitle}>{item.title}</Text>
 
           <Text style={styles.instruction}>
-            Answer the following questions to support your claim. Be as specific as possible.
+            {SKIP_STRIPE_IDENTITY
+              ? 'Answer the following questions to support your claim. Be as specific as possible.'
+              : 'Answer the following questions to support your claim. When you submit, you will verify your identity with Stripe (government ID) before the claim is sent.'}
           </Text>
 
           {/* Questions */}
