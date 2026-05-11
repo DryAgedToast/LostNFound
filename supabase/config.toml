@@ -1,0 +1,3 @@
+# Stripe redirects the user's browser here without a Supabase JWT.
+[functions.stripe-identity-return]
+verify_jwt = false

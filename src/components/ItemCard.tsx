@@ -26,7 +26,7 @@ const STATUS_LABELS: Record<ItemStatus, string> = {
   unclaimed: "Unclaimed",
   at_hotspot: "At Hotspot",
   claimed: "Claimed",
-  pending: "Pending",
+  pending: "Pending Pickup",
 };
 
 const CATEGORY_LABELS: Record<ItemCategory, string> = {
@@ -68,6 +68,10 @@ export default function ItemCard({ item, onPress }: ItemCardProps) {
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
   const statusColor = STATUS_COLORS[item.status];
+  const locationText =
+    item.status === "claimed" || item.status === "pending"
+      ? item.hotspots?.name ?? "Claimed from poster"
+      : item.location_found;
 
   return (
     <TouchableOpacity
@@ -128,7 +132,7 @@ export default function ItemCard({ item, onPress }: ItemCardProps) {
           style={[styles.location, { color: colors.textSecondary }]}
           numberOfLines={1}
         >
-          {item.location_found}
+          {locationText}
         </Text>
 
         {/* Footer: poster + time */}

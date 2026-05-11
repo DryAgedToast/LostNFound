@@ -15,9 +15,19 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
+
+type FeedStatusFilter = "available" | "pending" | "all";
+type FeedView = "active" | "archived";
+
+const STATUS_FILTERS: { key: FeedStatusFilter; label: string }[] = [
+  { key: "available", label: "Available" },
+  { key: "pending", label: "Pending Pickup" },
+  { key: "all", label: "All" },
+];
 
 export default function FeedScreen() {
   const colorScheme = useColorScheme() ?? "light";
@@ -25,13 +35,19 @@ export default function FeedScreen() {
   const router = useRouter();
 
   const [items, setItems] = useState<ItemWithPoster[]>([]);
+  const [archivedItems, setArchivedItems] = useState<ItemWithPoster[]>([]);
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<
     ItemCategory | "all"
   >("all");
+  const [selectedStatus, setSelectedStatus] =
+    useState<FeedStatusFilter>("available");
+  const [selectedView, setSelectedView] = useState<FeedView>("active");
   const [authChecked, setAuthChecked] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Auth gate
   useEffect(() => {
@@ -40,6 +56,7 @@ export default function FeedScreen() {
         if (!profile) {
           router.replace("/auth/login");
         } else {
+          setCurrentProfileId(profile.id);
           setAuthChecked(true);
         }
       })
@@ -49,22 +66,139 @@ export default function FeedScreen() {
   }, [router]);
 
   const fetchItems = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
+    setLoadError(null);
+
+    const mapRowsToWithPoster = (
+      rows: Record<string, unknown>[],
+    ): ItemWithPoster[] =>
+      rows.map((row) => {
+        const base = row as unknown as ItemWithPoster;
+        return {
+          ...base,
+          profiles:
+            base.profiles ??
+            ({
+              id: String(row.poster_id ?? ""),
+              user_id: "",
+              display_name: "Unknown",
+              email: "",
+              avatar_url: null,
+              role: "student",
+              created_at: new Date(0).toISOString(),
+            } as ItemWithPoster["profiles"]),
+          hotspots: base.hotspots ?? null,
+        };
+      });
+
+    const itemEmbed = "*, profiles!poster_id(*), hotspots!hotspot_id(*)";
+
+    const loadActiveItems = async (): Promise<ItemWithPoster[]> => {
+      const embedded = await supabase
         .from("items")
-        .select("*, profiles(*), hotspots(*)")
-        .in("status", ["unclaimed", "at_hotspot"])
+        .select(itemEmbed)
+        .in("status", ["unclaimed", "at_hotspot", "pending"])
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      const dbItems = (data ?? []) as unknown as ItemWithPoster[];
-      // If DB is connected but empty, show mock data in dev mode so there's something to see
-      setItems(dbItems.length === 0 && DEMO_MODE ? getMockItems() : dbItems);
-    } catch {
-      // Fallback to mock data if database is unreachable
+      if (!embedded.error) {
+        return (embedded.data ?? []) as unknown as ItemWithPoster[];
+      }
+
+      const plain = await supabase
+        .from("items")
+        .select("*")
+        .in("status", ["unclaimed", "at_hotspot", "pending"])
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+
+      if (plain.error) throw plain.error;
+      const rows = (plain.data ?? []) as Record<string, unknown>[];
+      if (rows.length > 0) {
+        setLoadError(
+          "Loaded items without poster details (database relationship hint failed).",
+        );
+      }
+      return mapRowsToWithPoster(rows);
+    };
+
+    try {
+      if (currentProfileId == null) {
+        const active = await loadActiveItems();
+        setItems(active.length === 0 && DEMO_MODE ? getMockItems() : active);
+        setArchivedItems([]);
+        return;
+      }
+
+      const [activeDbItems, deletedResult, claimedPostedResult, managedHotspotResult] =
+        await Promise.all([
+          loadActiveItems(),
+          supabase
+            .from("items")
+            .select(itemEmbed)
+            .eq("poster_id", currentProfileId)
+            .not("deleted_at", "is", null)
+            .order("deleted_at", { ascending: false }),
+          supabase
+            .from("items")
+            .select(itemEmbed)
+            .eq("poster_id", currentProfileId)
+            .eq("status", "claimed")
+            .is("deleted_at", null)
+            .is("hotspot_id", null)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("hotspot_managers")
+            .select("hotspot_id")
+            .eq("profile_id", currentProfileId),
+        ]);
+
+      if (deletedResult.error) throw deletedResult.error;
+      if (claimedPostedResult.error) throw claimedPostedResult.error;
+      if (managedHotspotResult.error) throw managedHotspotResult.error;
+
+      const archivedById = new Map<string, ItemWithPoster>();
+      for (const item of (deletedResult.data ?? []) as unknown as ItemWithPoster[]) {
+        archivedById.set(item.id, item);
+      }
+      for (const item of (claimedPostedResult.data ?? []) as unknown as ItemWithPoster[]) {
+        archivedById.set(item.id, item);
+      }
+
+      const managedHotspotIds = (
+        (managedHotspotResult.data ?? []) as { hotspot_id: string }[]
+      ).map((r) => r.hotspot_id);
+
+      if (managedHotspotIds.length > 0) {
+        const { data: claimedManagedData, error: claimedManagedError } = await supabase
+          .from("items")
+          .select(itemEmbed)
+          .in("hotspot_id", managedHotspotIds)
+          .eq("status", "claimed")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false });
+        if (claimedManagedError) throw claimedManagedError;
+        for (const item of (claimedManagedData ?? []) as unknown as ItemWithPoster[]) {
+          archivedById.set(item.id, item);
+        }
+      }
+
+      setItems(
+        activeDbItems.length === 0 && DEMO_MODE ? getMockItems() : activeDbItems,
+      );
+      setArchivedItems([...archivedById.values()]);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Could not load items from the database.";
+      setLoadError(msg);
       setItems(getMockItems());
+      setArchivedItems([]);
+      if (__DEV__) {
+        console.warn("[Feed] items query failed:", err);
+      }
     }
-  }, []);
+  }, [currentProfileId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,6 +220,26 @@ export default function FeedScreen() {
 
   // Client-side filtering
   const filteredItems = items.filter((item) => {
+    const matchesSearch =
+      searchQuery.trim() === "" ||
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description ?? "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "all" || item.category === selectedCategory;
+
+    const matchesStatus =
+      selectedStatus === "all" ||
+      (selectedStatus === "available" &&
+        (item.status === "unclaimed" || item.status === "at_hotspot")) ||
+      item.status === selectedStatus;
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  const filteredArchivedItems = archivedItems.filter((item) => {
     const matchesSearch =
       searchQuery.trim() === "" ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -133,9 +287,57 @@ export default function FeedScreen() {
         ]}
       >
         <View style={styles.headerContent}>
-          <Text style={[styles.pageTitle, { color: colors.text }]}>
-            Marketplace
-          </Text>
+          <View style={styles.headerTopRow}>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>
+              Marketplace
+            </Text>
+            <View style={styles.viewSwitch}>
+              <TouchableOpacity
+                style={[
+                  styles.viewSwitchButton,
+                  selectedView === "active" && styles.viewSwitchButtonActive,
+                ]}
+                onPress={() => setSelectedView("active")}
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.viewSwitchText,
+                    {
+                      color:
+                        selectedView === "active"
+                          ? "#FFFFFF"
+                          : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  Active
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.viewSwitchButton,
+                  selectedView === "archived" && styles.viewSwitchButtonActive,
+                ]}
+                onPress={() => setSelectedView("archived")}
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.viewSwitchText,
+                    {
+                      color:
+                        selectedView === "archived"
+                          ? "#FFFFFF"
+                          : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  Archived
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           <TextInput
             style={[
               styles.searchInput,
@@ -169,6 +371,38 @@ export default function FeedScreen() {
           selected={selectedCategory}
           onSelect={setSelectedCategory}
         />
+        {selectedView === "active" && (
+          <View style={styles.statusFilterRow}>
+            {STATUS_FILTERS.map((filter) => {
+              const selected = selectedStatus === filter.key;
+              return (
+                <TouchableOpacity
+                  key={filter.key}
+                  style={[
+                    styles.statusFilterButton,
+                    {
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected
+                        ? colors.backgroundSelected
+                        : colors.backgroundElement,
+                    },
+                  ]}
+                  onPress={() => setSelectedStatus(filter.key)}
+                  activeOpacity={0.75}
+                >
+                  <Text
+                    style={[
+                      styles.statusFilterText,
+                      { color: selected ? colors.primary : colors.textSecondary },
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </View>
 
       {/* Feed */}
@@ -178,7 +412,7 @@ export default function FeedScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredItems}
+          data={selectedView === "active" ? filteredItems : filteredArchivedItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           numColumns={2}
@@ -194,11 +428,40 @@ export default function FeedScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {searchQuery.trim() !== "" || selectedCategory !== "all"
-                  ? "No items match your filters."
-                  : "No lost items posted yet"}
-              </Text>
+              {loadError !== null ? (
+                <>
+                  <Text style={[styles.emptyText, { color: colors.text }]}>
+                    Could not load items
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: colors.textSecondary, marginTop: Spacing.two },
+                    ]}
+                  >
+                    {loadError}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: colors.textSecondary, marginTop: Spacing.two },
+                    ]}
+                  >
+                    Check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
+                    in .env, then restart Expo (clear cache if needed).
+                  </Text>
+                </>
+              ) : (
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  {searchQuery.trim() !== "" ||
+                  selectedCategory !== "all" ||
+                  (selectedView === "active" && selectedStatus !== "available")
+                    ? "No items match your filters."
+                    : selectedView === "archived"
+                      ? "No archived posts yet"
+                      : "No lost items posted yet"}
+                </Text>
+              )}
             </View>
           }
         />
@@ -226,10 +489,34 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.two,
+    marginBottom: Spacing.two,
+  },
   pageTitle: {
     fontSize: 24,
     fontWeight: "700",
-    marginBottom: Spacing.two,
+  },
+  viewSwitch: {
+    flexDirection: "row",
+    backgroundColor: "#E4E6EB",
+    borderRadius: 10,
+    padding: 3,
+  },
+  viewSwitchButton: {
+    borderRadius: 8,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+  },
+  viewSwitchButtonActive: {
+    backgroundColor: "#1877F2",
+  },
+  viewSwitchText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   searchInput: {
     fontSize: 15,
@@ -241,6 +528,23 @@ const styles = StyleSheet.create({
   filterContainer: {
     paddingVertical: Spacing.two,
     borderBottomWidth: 1,
+  },
+  statusFilterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+  },
+  statusFilterButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+  },
+  statusFilterText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   listContent: {
     paddingHorizontal: Spacing.two,

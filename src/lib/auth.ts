@@ -10,6 +10,10 @@ export const DEV_LOGIN_PASSWORD =
   process.env.EXPO_PUBLIC_DEV_LOGIN_PASSWORD ?? "";
 const DEV_BYPASS_DISPLAY_NAME =
   process.env.EXPO_PUBLIC_DEV_BYPASS_DISPLAY_NAME ?? "Dev User";
+export const DEV_TEACHER_EMAIL =
+  process.env.EXPO_PUBLIC_DEV_TEACHER_EMAIL ?? "";
+export const DEV_TEACHER_PASSWORD =
+  process.env.EXPO_PUBLIC_DEV_TEACHER_PASSWORD ?? "";
 
 export const MOCK_USER: Profile = {
   id: "dev-bypass-user",
@@ -44,10 +48,17 @@ function toUserFacingAuthError(error: unknown): Error {
     ) {
       return error;
     }
+
+    // Supabase Auth 500 errors — server-side issue, not a connectivity problem
+    if (msg.includes("database error")) {
+      return new Error(
+        "Sign up is temporarily unavailable. Please try again in a moment.",
+      );
+    }
   }
 
   return new Error(
-    "Unable to connect. Please check your internet connection.",
+    "Something went wrong. Please check your connection and try again.",
   );
 }
 
@@ -57,15 +68,11 @@ export async function devBypassLogin(): Promise<{
 }> {
   // If we have real credentials, do a proper Supabase sign-in
   if (DEV_LOGIN_EMAIL.length > 0 && DEV_LOGIN_PASSWORD.length > 0) {
-    try {
-      const result = await signIn(DEV_LOGIN_EMAIL, DEV_LOGIN_PASSWORD);
-      return result;
-    } catch {
-      // Fall through to local bypass if sign-in fails
-    }
+    return signIn(DEV_LOGIN_EMAIL, DEV_LOGIN_PASSWORD);
   }
 
-  // Local-only bypass (no DB session)
+  // Local-only bypass (no DB session), used only when no real dev credentials
+  // are configured.
   try {
     if (DEV_LOGIN_EMAIL.length > 0) {
       const { data: profile } = await supabase
@@ -86,34 +93,79 @@ export async function devBypassLogin(): Promise<{
   return { profile: devBypassProfile, role: devBypassProfile.role };
 }
 
+export async function devTeacherLogin(): Promise<{
+  profile: Profile;
+  role: UserRole;
+}> {
+  return signIn(DEV_TEACHER_EMAIL, DEV_TEACHER_PASSWORD);
+}
+
 export async function signUp(
   email: string,
   password: string,
   displayName: string,
-): Promise<Profile> {
+  campusCode?: string,
+): Promise<{ profile: Profile; isTeacher: boolean; campusCodeId?: string }> {
   try {
+    let resolvedRole: UserRole = "student";
+    let campusCodeId: string | undefined;
+
+    if (campusCode) {
+      const { data: codeData, error: codeError } = await supabase
+        .from("campus_codes")
+        .select("id, is_active")
+        .eq("code", campusCode.trim().toUpperCase())
+        .single();
+
+      const codeRow = codeData as unknown as { id: string; is_active: boolean } | null;
+
+      if (codeError || !codeRow) {
+        throw new Error("Invalid or expired campus code.");
+      }
+      if (!codeRow.is_active) {
+        throw new Error("This campus code has been deactivated.");
+      }
+      resolvedRole = "staff";
+      campusCodeId = codeRow.id;
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: { display_name: displayName, role: resolvedRole },
+      },
     });
-    if (authError) throw authError;
-    if (!authData.user) throw new Error("Sign up failed: no user returned");
 
+    // "User already registered" means a previous signup created the auth user but
+    // failed before writing the profile. Sign in with the same credentials to verify
+    // ownership, then upsert the profile to recover.
+    let userId: string;
+    if (authError?.message.toLowerCase().includes("user already registered")) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+      if (!signInData.user) throw new Error("Sign in failed");
+      userId = signInData.user.id;
+    } else {
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Sign up failed: no user returned");
+      userId = authData.user.id;
+    }
+
+    // Upsert the profile so it's always created with the correct values even if
+    // the handle_new_user trigger silently failed (e.g. search_path issue).
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .insert({
-        user_id: authData.user.id,
-        display_name: displayName,
-        email,
-        role: "student" as UserRole,
-      })
+      .upsert(
+        { user_id: userId, display_name: displayName, email, role: resolvedRole },
+        { onConflict: "user_id" },
+      )
       .select()
       .single();
 
     if (profileError) throw profileError;
-    // If a real auth session is created, stop using any demo bypass session.
     devSessionActive = false;
-    return profile as Profile;
+    return { profile: profile as Profile, isTeacher: resolvedRole === "staff", campusCodeId };
   } catch (error: unknown) {
     throw toUserFacingAuthError(error);
   }

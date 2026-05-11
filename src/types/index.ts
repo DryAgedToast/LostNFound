@@ -6,11 +6,12 @@
 export type UserRole = 'student' | 'staff' | 'admin';
 export type ItemCategory = 'electronics' | 'clothing' | 'keys' | 'wallet' | 'id_card' | 'bag' | 'other';
 export type ItemStatus = 'unclaimed' | 'pending' | 'claimed' | 'at_hotspot';
-export type ClaimStatus = 'pending' | 'approved' | 'rejected' | 'awaiting_in_person';
+export type ClaimStatus = 'pending' | 'approved' | 'rejected' | 'awaiting_in_person' | 'withdrawn';
 export type IdType = 'drivers_license' | 'state_id' | 'passport' | 'student_id';
 export type PurgeStatus = 'active' | 'scheduled_purge' | 'purged';
 export type TheftClaimStatus = 'open' | 'under_review' | 'resolved';
 export type BuildingType = 'library' | 'student_center' | 'lecture_hall' | 'gym' | 'admin_building' | 'other';
+export type MessageType = 'user' | 'system';
 
 // TABLE INTERFACES
 
@@ -24,6 +25,15 @@ export interface Profile {
   created_at: string;
 }
 
+export interface CampusCode {
+  id: string;
+  code: string;
+  institution: string;
+  created_by: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Hotspot {
   id: string;
   name: string;
@@ -32,8 +42,17 @@ export interface Hotspot {
   latitude: number;
   longitude: number;
   staff_contact: string | null;
+  campus_code_id: string | null;
   is_active: boolean;
   created_at: string;
+}
+
+export interface HotspotManager {
+  id: string;
+  profile_id: string;
+  hotspot_id: string;
+  campus_code_id: string | null;
+  assigned_at: string;
 }
 
 export interface Item {
@@ -47,6 +66,8 @@ export interface Item {
   image_url: string | null;
   status: ItemStatus;
   custom_questions: CustomQuestion[];
+  deleted_at: string | null;
+  deleted_by: string | null;
   created_at: string;
 }
 
@@ -60,6 +81,8 @@ export interface Claim {
   reviewed_at: string | null;
   identity_verified: boolean;
   identity_record_id: string | null;
+  /** Stripe Identity VerificationSession id when claimant completed hosted verification before claim. */
+  stripe_verification_session_id: string | null;
   created_at: string;
 }
 
@@ -95,7 +118,23 @@ export interface Message {
   claim_id: string;
   sender_id: string;
   content: string;
+  message_type: MessageType;
   created_at: string;
+}
+
+export interface MessageRead {
+  id: string;
+  message_id: string;
+  claim_id: string;
+  reader_profile_id: string;
+  read_at: string;
+}
+
+export interface ClaimChatHide {
+  id: string;
+  claim_id: string;
+  profile_id: string;
+  hidden_at: string;
 }
 
 export interface HotspotDropoff {

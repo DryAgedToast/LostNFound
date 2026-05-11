@@ -3,6 +3,7 @@ import StaffGuard from "@/components/StaffGuard";
 import { Colors, Spacing } from "@/constants/theme";
 import { getCurrentProfile } from "@/lib/auth";
 import { verifyIdentityForClaim } from "@/lib/idanalyzer";
+import { openStripeIdentityForClaim } from "@/lib/stripeIdentity";
 import { supabase } from "@/lib/supabase";
 import type { Claim, Profile } from "@/types";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -61,6 +62,7 @@ function VerifyContent() {
   const [capturedLocally, setCapturedLocally] = useState(false);
 
   const [actionLoading, setActionLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   // ── Data fetching ────────────────────────────────────────────────────────────
 
@@ -102,6 +104,8 @@ function VerifyContent() {
         reviewed_at: raw.reviewed_at,
         identity_verified: raw.identity_verified,
         identity_record_id: raw.identity_record_id,
+        stripe_verification_session_id:
+          raw.stripe_verification_session_id ?? null,
         created_at: raw.created_at,
         itemTitle: raw.items?.title ?? "Unknown Item",
         itemImageUrl: raw.items?.image_url ?? null,
@@ -201,6 +205,24 @@ function VerifyContent() {
       const message =
         err instanceof Error ? err.message : "Failed to capture photo.";
       setProcessingError(message);
+    }
+  };
+
+  const handleStripeIdentity = async () => {
+    if (!claimId) return;
+    setStripeLoading(true);
+    try {
+      const result = await openStripeIdentityForClaim(claimId);
+      if (!result.ok) {
+        Alert.alert("Stripe Identity", result.error);
+        return;
+      }
+      Alert.alert(
+        "Stripe Identity",
+        "When Stripe marks the session verified, approve the claim here or add a webhook to update claims automatically.",
+      );
+    } finally {
+      setStripeLoading(false);
     }
   };
 
@@ -423,6 +445,24 @@ function VerifyContent() {
           </TouchableOpacity>
         )}
 
+        {scanState === "idle" && (
+          <TouchableOpacity
+            style={[
+              styles.stripeButton,
+              (actionLoading || stripeLoading) && styles.disabledButton,
+            ]}
+            onPress={handleStripeIdentity}
+            disabled={actionLoading || stripeLoading}
+            activeOpacity={0.8}
+          >
+            {stripeLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.stripeButtonText}>Verify with Stripe Identity</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
         {/* Approve Without ID */}
         <TouchableOpacity
           style={[
@@ -555,6 +595,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.two,
   },
   scanButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  stripeButton: {
+    backgroundColor: "#635BFF",
+    borderRadius: 10,
+    paddingVertical: Spacing.three,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 52,
+    marginBottom: Spacing.two,
+  },
+  stripeButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",

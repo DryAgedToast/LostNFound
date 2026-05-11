@@ -96,6 +96,7 @@ export default function HotspotsScreen() {
               .from("items")
               .select("id", { count: "exact", head: true })
               .eq("status", "at_hotspot")
+              .is("deleted_at", null)
               .eq("hotspot_id", hotspot.id);
 
             return {
@@ -174,6 +175,7 @@ export default function HotspotsScreen() {
         .select("*")
         .eq("status", "at_hotspot")
         .eq("hotspot_id", hotspot.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (itemsError) throw itemsError;

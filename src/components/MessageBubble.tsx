@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { Image, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { Colors } from '@/constants/theme';
+import type { MessageType } from '@/types';
 
 interface MessageBubbleProps {
   content: string;
   isOwn: boolean;
   timestamp: string; // ISO string
-  senderName?: string; // shown for non-own messages
+  senderName?: string;
+  avatarUrl?: string;
+  messageType?: MessageType;
 }
 
 export default function MessageBubble({
@@ -14,6 +17,8 @@ export default function MessageBubble({
   isOwn,
   timestamp,
   senderName,
+  avatarUrl,
+  messageType = 'user',
 }: MessageBubbleProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
@@ -29,10 +34,46 @@ export default function MessageBubble({
     }
   })();
 
+  const initial = senderName ? senderName[0].toUpperCase() : '?';
+
+  if (messageType === 'system') {
+    return (
+      <View style={styles.systemRow}>
+        <View
+          style={[
+            styles.systemBubble,
+            { backgroundColor: colors.backgroundSelected },
+          ]}
+        >
+          <Text style={[styles.systemContent, { color: colors.textSecondary }]}>
+            {content}
+          </Text>
+        </View>
+        <Text style={[styles.systemTimestamp, { color: colors.placeholder }]}>
+          {formattedTime}
+        </Text>
+      </View>
+    );
+  }
+
+  const avatar = (
+    <View style={styles.avatarContainer}>
+      {avatarUrl ? (
+        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarFallback}>
+          <Text style={styles.avatarInitial}>{initial}</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <View style={[styles.row, isOwn ? styles.rowOwn : styles.rowOther]}>
-      <View style={styles.bubbleColumn}>
-        {!isOwn && senderName != null && senderName.length > 0 && (
+      {!isOwn && avatar}
+
+      <View style={[styles.bubbleColumn, !isOwn && styles.bubbleColumnOther]}>
+        {senderName != null && senderName.length > 0 && (
           <Text style={[styles.senderName, { color: colors.textSecondary }]}>
             {senderName}
           </Text>
@@ -63,6 +104,7 @@ export default function MessageBubble({
           {formattedTime}
         </Text>
       </View>
+      {isOwn && avatar}
     </View>
   );
 }
@@ -72,6 +114,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginVertical: 4,
     paddingHorizontal: 12,
+    alignItems: 'flex-end',
+    gap: 6,
   },
   rowOwn: {
     justifyContent: 'flex-end',
@@ -79,8 +123,32 @@ const styles = StyleSheet.create({
   rowOther: {
     justifyContent: 'flex-start',
   },
+  avatarContainer: {
+    marginBottom: 2,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  avatarFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1877F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   bubbleColumn: {
-    maxWidth: '75%',
+    maxWidth: '72%',
+  },
+  bubbleColumnOther: {
+    // slight indent already provided by avatar
   },
   senderName: {
     fontSize: 11,
@@ -118,5 +186,26 @@ const styles = StyleSheet.create({
   timestampOther: {
     textAlign: 'left',
     marginLeft: 4,
+  },
+  systemRow: {
+    alignItems: 'center',
+    marginVertical: 8,
+    paddingHorizontal: 16,
+  },
+  systemBubble: {
+    maxWidth: '84%',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  systemContent: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  systemTimestamp: {
+    fontSize: 10,
+    marginTop: 3,
   },
 });

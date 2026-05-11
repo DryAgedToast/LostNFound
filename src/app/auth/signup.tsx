@@ -1,5 +1,6 @@
+import DbStatusBadge from "@/components/DbStatusBadge";
 import { Colors, Spacing } from "@/constants/theme";
-import { signUp } from "@/lib/auth";
+import { DEV_MODE, signUp } from "@/lib/auth";
 import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
@@ -20,15 +21,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+type AccountType = "student" | "teacher";
+
 export default function SignupScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
+  const [accountType, setAccountType] = useState<AccountType>("student");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [campusCode, setCampusCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -44,6 +49,8 @@ export default function SignupScreen() {
     if (!password) return "Password is required.";
     if (password.length < 6) return "Password must be at least 6 characters.";
     if (password !== confirmPassword) return "Passwords do not match.";
+    if (accountType === "teacher" && !campusCode.trim())
+      return "Campus code is required for teacher accounts.";
     return null;
   };
 
@@ -57,8 +64,21 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      await signUp(email.trim(), password, displayName.trim());
-      router.replace("/(tabs)/");
+      const result = await signUp(
+        email.trim(),
+        password,
+        displayName.trim(),
+        accountType === "teacher" ? campusCode.trim() : undefined,
+      );
+
+      if (result.isTeacher && result.campusCodeId) {
+        router.replace({
+          pathname: "/auth/select-hotspot",
+          params: { campusCodeId: result.campusCodeId },
+        });
+      } else {
+        router.replace("/(tabs)/");
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -88,8 +108,48 @@ export default function SignupScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
-              Join LostNFound to report and recover items
+              Join LostNFound to report, recover, or manage campus items
             </Text>
+          </View>
+
+          {/* Account type toggle */}
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                styles.toggleLeft,
+                accountType === "student" && styles.toggleActive,
+              ]}
+              onPress={() => setAccountType("student")}
+              disabled={loading}
+            >
+              <Text
+                style={[
+                  styles.toggleLabel,
+                  accountType === "student" && styles.toggleLabelActive,
+                ]}
+              >
+                Student
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                styles.toggleRight,
+                accountType === "teacher" && styles.toggleActive,
+              ]}
+              onPress={() => setAccountType("teacher")}
+              disabled={loading}
+            >
+              <Text
+                style={[
+                  styles.toggleLabel,
+                  accountType === "teacher" && styles.toggleLabelActive,
+                ]}
+              >
+                Teacher / Staff
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.form}>
@@ -170,6 +230,26 @@ export default function SignupScreen() {
               </TouchableOpacity>
             </View>
 
+            {accountType === "teacher" && (
+              <>
+                <Text style={styles.label}>Teacher Campus Code</Text>
+                <TextInput
+                  style={styles.input}
+                  value={campusCode}
+                  onChangeText={setCampusCode}
+                  placeholder="e.g. UDEL-TEACHER"
+                  placeholderTextColor={colors.placeholder}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  editable={!loading}
+                />
+                <Text style={styles.hintText}>
+                  This verifies that you can manage Lost & Found desks for
+                  your campus.
+                </Text>
+              </>
+            )}
+
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleSignup}
@@ -194,6 +274,8 @@ export default function SignupScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {DEV_MODE && <DbStatusBadge />}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -216,7 +298,7 @@ function makeStyles(colors: typeof Colors.light) {
       paddingVertical: Spacing.five,
     },
     header: {
-      marginBottom: Spacing.five,
+      marginBottom: Spacing.three,
       alignItems: "center",
     },
     title: {
@@ -229,6 +311,39 @@ function makeStyles(colors: typeof Colors.light) {
       fontSize: 15,
       color: colors.textSecondary,
       textAlign: "center",
+    },
+    toggleRow: {
+      flexDirection: "row",
+      marginBottom: Spacing.three,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: "hidden",
+    },
+    toggleButton: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: "center",
+      backgroundColor: colors.backgroundElement,
+    },
+    toggleLeft: {
+      borderRightWidth: 0.5,
+      borderRightColor: colors.border,
+    },
+    toggleRight: {
+      borderLeftWidth: 0.5,
+      borderLeftColor: colors.border,
+    },
+    toggleActive: {
+      backgroundColor: "#1877F2",
+    },
+    toggleLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    toggleLabelActive: {
+      color: "#FFFFFF",
     },
     form: {
       backgroundColor: colors.backgroundElement,
@@ -259,6 +374,11 @@ function makeStyles(colors: typeof Colors.light) {
       color: colors.text,
       marginBottom: Spacing.one,
       marginTop: Spacing.two,
+    },
+    hintText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: -Spacing.one,
     },
     input: {
       backgroundColor: colors.background,

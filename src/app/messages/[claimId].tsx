@@ -9,7 +9,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { subscribeToMessages, unsubscribeFromClaim } from "@/lib/realtime";
 import { supabase } from "@/lib/supabase";
 import type { Claim, ClaimStatus, MessageWithSender, Profile } from "@/types";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -35,6 +35,7 @@ interface ClaimWithItem extends Claim {
 
 export default function MessageScreen() {
   const { claimId } = useLocalSearchParams<{ claimId: string }>();
+  const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
@@ -132,7 +133,8 @@ export default function MessageScreen() {
         claim_id: claimId,
         sender_id: currentProfile.id,
         content,
-      });
+        message_type: "user",
+      } as never);
 
       if (sendError) throw sendError;
     } catch (err: unknown) {
@@ -150,6 +152,10 @@ export default function MessageScreen() {
   // ── Derived values ─────────────────────────────────────────────────────────
   const itemTitle = claim?.items?.title ?? "Claim";
   const claimStatus: ClaimStatus = claim?.status ?? "pending";
+  const handleOpenItem = () => {
+    if (!claim) return;
+    router.push(`/item/${claim.item_id}`);
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) {
@@ -169,15 +175,19 @@ export default function MessageScreen() {
         options={{
           headerShown: true,
           headerTitle: () => (
-            <View style={styles.headerTitle}>
+            <TouchableOpacity
+              style={styles.headerTitle}
+              onPress={handleOpenItem}
+              activeOpacity={0.75}
+            >
               <Text
-                style={[styles.headerItemTitle, { color: colors.text }]}
+                style={[styles.headerItemTitle, { color: "#1877F2" }]}
                 numberOfLines={1}
               >
                 {itemTitle}
               </Text>
               <ClaimStatusBadge status={claimStatus} />
-            </View>
+            </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.text,
@@ -216,14 +226,15 @@ export default function MessageScreen() {
           {messages.map((msg) => {
             const isOwn =
               currentProfile != null && msg.sender_id === currentProfile.id;
-            const senderName = !isOwn ? msg.profiles?.display_name : undefined;
             return (
               <MessageBubble
                 key={msg.id}
                 content={msg.content}
                 isOwn={isOwn}
                 timestamp={msg.created_at}
-                senderName={senderName}
+                senderName={msg.profiles?.display_name}
+                avatarUrl={msg.profiles?.avatar_url ?? undefined}
+                messageType={msg.message_type ?? "user"}
               />
             );
           })}

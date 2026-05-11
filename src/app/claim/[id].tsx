@@ -21,7 +21,11 @@ import {
   showDatabaseNotConnectedPopup,
 } from '@/lib/db-alert';
 import { Colors, Spacing } from '@/constants/theme';
+import { openStripeIdentityBeforeClaim } from '@/lib/stripeIdentity';
 import type { Item, Profile, CustomQuestion, CustomAnswer } from '@/types';
+
+const SKIP_STRIPE_IDENTITY =
+  process.env.EXPO_PUBLIC_SKIP_STRIPE_IDENTITY_ON_CLAIM === 'true';
 
 export default function ClaimScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,7 +48,12 @@ export default function ClaimScreen() {
     try {
       const [profile, itemRes] = await Promise.all([
         getCurrentProfile(),
-        supabase.from('items').select('*').eq('id', id).single(),
+        supabase
+          .from('items')
+          .select('*')
+          .eq('id', id)
+          .is('deleted_at', null)
+          .single(),
       ]);
 
       if (!profile) throw new Error('Not authenticated');
@@ -94,6 +103,22 @@ export default function ClaimScreen() {
     setError(null);
 
     try {
+      let stripeVerificationSessionId: string | null = null;
+
+      if (!SKIP_STRIPE_IDENTITY) {
+        const identity = await openStripeIdentityBeforeClaim(item.id);
+        if (!identity.ok) {
+          setError(identity.error);
+          return;
+        }
+        stripeVerificationSessionId =
+          identity.verificationSessionId ?? null;
+        if (!stripeVerificationSessionId) {
+          setError('Identity check did not return a session id. Try again.');
+          return;
+        }
+      }
+
       let customAnswers: CustomAnswer[];
 
       if (hasCustomQuestions) {
@@ -112,16 +137,47 @@ export default function ClaimScreen() {
         ];
       }
 
-      const { error: insertErr } = await supabase.from('claims').insert({
-        item_id: item.id,
-        claimant_id: currentProfile.id,
-        custom_answers: customAnswers,
-        status: 'pending',
-      });
+      const { data: claimData, error: insertErr } = await supabase
+        .from('claims')
+        .insert({
+          item_id: item.id,
+          claimant_id: currentProfile.id,
+          custom_answers: customAnswers,
+          status: 'pending',
+          ...(stripeVerificationSessionId !== null && {
+            stripe_verification_session_id: stripeVerificationSessionId,
+          }),
+        } as never)
+        .select('id')
+        .single();
 
       if (insertErr) throw insertErr;
+      const createdClaim = claimData as { id: string } | null;
+      if (!createdClaim) throw new Error('Claim created without an id.');
 
-      router.replace('/(tabs)/messages');
+      const { error: statusErr } = await supabase
+        .from('items')
+        .update({ status: 'pending' } as never)
+        .eq('id', item.id);
+      if (statusErr) throw statusErr;
+
+      const firstMessage = customAnswers
+        .map(({ question, answer }) => `${question}\n${answer.trim()}`)
+        .join('\n\n');
+
+      const { error: messageErr } = await supabase.from('messages').insert({
+        claim_id: createdClaim.id,
+        sender_id: currentProfile.id,
+        content: firstMessage,
+        message_type: 'user',
+      } as never);
+
+      if (messageErr) throw messageErr;
+
+      router.replace({
+        pathname: "/(tabs)/messages",
+        params: { claimId: createdClaim.id },
+      });
     } catch (err: unknown) {
       if (isDatabaseUnavailableError(err)) {
         showDatabaseNotConnectedPopup();
@@ -167,7 +223,16 @@ export default function ClaimScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
+            }}
+          >
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
 
@@ -189,7 +254,9 @@ export default function ClaimScreen() {
           <Text style={styles.itemTitle}>{item.title}</Text>
 
           <Text style={styles.instruction}>
-            Answer the following questions to support your claim. Be as specific as possible.
+            {SKIP_STRIPE_IDENTITY
+              ? 'Answer the following questions to support your claim. Be as specific as possible.'
+              : 'Answer the following questions to support your claim. When you submit, you will verify your identity with Stripe (government ID) before the claim is sent.'}
           </Text>
 
           {/* Questions */}
