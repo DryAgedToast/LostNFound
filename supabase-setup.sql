@@ -462,3 +462,19 @@ begin
     ('Hullihen Hall Main Office',        'admin_building', '104 Hullihen Hall, Newark, DE 19716',  39.6577, -75.7508, udel_code_id, true)
   on conflict do nothing;
 end $$;
+
+-- Claimant may set item to pending after creating their pending claim (see migrations/004).
+drop policy if exists "items_update_claimant_pending" on public.items;
+create policy "items_update_claimant_pending" on public.items
+for update
+using (
+  status in ('unclaimed', 'at_hotspot')
+  and exists (
+    select 1
+    from public.claims c
+    where c.item_id = items.id
+      and c.claimant_id = current_profile_id()
+      and c.status = 'pending'
+  )
+)
+with check (status = 'pending');

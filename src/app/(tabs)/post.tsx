@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import type { CustomQuestion, Hotspot, ItemCategory, Profile } from "@/types";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
+import { File as ExpoFsFile } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -37,6 +38,27 @@ const CATEGORIES: ItemCategory[] = [
   "bag",
   "other",
 ];
+
+/** Read a camera / library URI into bytes (fetch+blob is unreliable for file:// on native). */
+async function readLocalImageAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
+  if (Platform.OS === "web") {
+    const res = await fetch(uri);
+    if (!res.ok) {
+      throw new Error(`Could not read image (HTTP ${res.status})`);
+    }
+    return await res.blob().then((b) => b.arrayBuffer());
+  }
+
+  try {
+    return await new ExpoFsFile(uri).arrayBuffer();
+  } catch {
+    const res = await fetch(uri);
+    if (!res.ok) {
+      throw new Error(`Could not read image (HTTP ${res.status})`);
+    }
+    return await res.blob().then((b) => b.arrayBuffer());
+  }
+}
 
 const CATEGORY_LABELS: Record<ItemCategory, string> = {
   electronics: "Electronics",
@@ -191,34 +213,42 @@ export default function PostScreen() {
     uri: string,
     posterId: string,
   ): Promise<string> => {
+    const maybeExt = uri.split(".").pop()?.toLowerCase();
+    const ext =
+      maybeExt && maybeExt.length <= 5 && /^[a-z0-9]+$/.test(maybeExt)
+        ? maybeExt
+        : "jpg";
+    const fileName = `${posterId}-${Date.now()}.${ext}`;
+
+    let arrayBuffer: ArrayBuffer;
     try {
-      const maybeExt = uri.split(".").pop()?.toLowerCase();
-      const ext =
-        maybeExt && maybeExt.length <= 5 && /^[a-z0-9]+$/.test(maybeExt)
-          ? maybeExt
-          : "jpg";
-      const fileName = `${posterId}-${Date.now()}.${ext}`;
-
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-
-      const { error: uploadError } = await supabase.storage
-        .from("item-images")
-        .upload(fileName, arrayBuffer, {
-          contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("item-images")
-        .getPublicUrl(fileName);
-      return urlData.publicUrl;
-    } catch {
-      throw new Error("Unable to upload image.");
+      arrayBuffer = await readLocalImageAsArrayBuffer(uri);
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : "Could not read the image from your device.";
+      throw new Error(msg);
     }
+
+    const { error: uploadError } = await supabase.storage
+      .from("item-images")
+      .upload(fileName, arrayBuffer, {
+        contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error(
+        uploadError.message ||
+          "Storage rejected the upload. Sign in and confirm the item-images bucket exists.",
+      );
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("item-images")
+      .getPublicUrl(fileName);
+    return urlData.publicUrl;
   };
 
   const handleSubmit = useCallback(async () => {
