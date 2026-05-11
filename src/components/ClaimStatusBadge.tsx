@@ -11,6 +11,7 @@ const STATUS_CONFIG: Record<ClaimStatus, { label: string; color: string }> = {
   approved: { label: "Approved", color: "#42B72A" },
   rejected: { label: "Rejected", color: "#65676B" },
   awaiting_in_person: { label: "In-Person Required", color: "#1877F2" },
+  withdrawn: { label: "Withdrawn", color: "#65676B" },
 };
 
 export default function ClaimStatusBadge({ status }: ClaimStatusBadgeProps) {

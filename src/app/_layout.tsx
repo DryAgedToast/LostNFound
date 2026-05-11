@@ -22,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/signup" />
+        <Stack.Screen name="auth/select-hotspot" />
         <Stack.Screen name="item/[id]" />
         <Stack.Screen name="claim/[id]" />
         <Stack.Screen

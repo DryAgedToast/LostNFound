@@ -1,14 +1,22 @@
 import { Colors } from "@/constants/theme";
+import { getCurrentProfile } from "@/lib/auth";
 import { Tabs } from "expo-router";
+import { useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
 
-/**
- * Mobile tab navigation (native apps)
- * Web uses sidebar layout from _layout.web.tsx
- */
 export default function TabsLayout() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  // null = still loading, false = student, true = staff/admin
+  const [isStaff, setIsStaff] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    getCurrentProfile().then((profile) => {
+      setIsStaff(
+        profile?.role === "staff" || profile?.role === "admin" ? true : false
+      );
+    });
+  }, []);
 
   return (
     <Tabs
@@ -34,6 +42,14 @@ export default function TabsLayout() {
       <Tabs.Screen name="post" options={{ title: "Post" }} />
       <Tabs.Screen name="hotspots" options={{ title: "Hotspots" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      {/* isStaff === null means profile not yet loaded — keep hidden until resolved */}
+      <Tabs.Screen
+        name="staff"
+        options={{
+          title: "Staff",
+          href: isStaff === true ? undefined : null,
+        }}
+      />
     </Tabs>
   );
 }
