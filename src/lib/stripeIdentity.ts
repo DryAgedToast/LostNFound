@@ -8,21 +8,63 @@ export type StripeIdentitySessionResult =
   | { ok: true; verificationSessionId: string | undefined }
   | { ok: false; error: string };
 
+/** Supabase FunctionsHttpError carries the Response in `context`. */
+async function messageFromInvokeError(error: unknown): Promise<string | null> {
+  if (!error || typeof error !== "object") return null;
+  const e = error as { name?: string; context?: unknown };
+  if (e.name !== "FunctionsHttpError" || !(e.context instanceof Response)) {
+    return null;
+  }
+  try {
+    const json = (await e.context.clone().json()) as { error?: unknown };
+    if (typeof json.error === "string") return json.error;
+  } catch {
+    try {
+      const text = await (e.context as Response).clone().text();
+      if (text) return text.slice(0, 400);
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+/**
+ * Optional override: HTTPS page used as Stripe `return_url` and as the second
+ * argument to `openAuthSessionAsync` (must match Stripe’s redirect exactly).
+ * Normally the Edge Function returns `stripe_return_url` (Supabase-hosted HTTPS)
+ * so you do not need to set this.
+ */
+function claimReturnUrlFallback(itemId: string): string {
+  const bridge = process.env.EXPO_PUBLIC_STRIPE_IDENTITY_RETURN_URL?.trim();
+  if (bridge) {
+    const u = new URL(bridge);
+    u.searchParams.set("claim_item_id", itemId);
+    return u.toString();
+  }
+  return Linking.createURL(`/claim/${itemId}`);
+}
+
 async function invokeCreateSession(body: {
-  return_url: string;
+  return_url?: string;
   claim_id?: string;
   item_id?: string;
 }): Promise<StripeIdentitySessionResult> {
   const { data, error } = await supabase.functions.invoke<{
     url?: string;
     verification_session_id?: string;
+    stripe_return_url?: string;
     error?: string;
   }>("create-stripe-identity-session", { body });
 
   if (error) {
+    const detail = await messageFromInvokeError(error);
     return {
       ok: false,
-      error: error.message ?? "Could not start Stripe Identity",
+      error:
+        detail ??
+        error.message ??
+        "Could not start Stripe Identity (Edge Function error).",
     };
   }
 
@@ -35,10 +77,21 @@ async function invokeCreateSession(body: {
     return { ok: false, error: "No verification URL returned" };
   }
 
-  const browserResult = await WebBrowser.openAuthSessionAsync(
-    url,
-    body.return_url,
-  );
+  // Must match the `return_url` sent to Stripe (HTTPS). Edge returns this;
+  // fall back for older deployed functions.
+  const redirectUrl =
+    data.stripe_return_url ??
+    body.return_url ??
+    (body.item_id ? claimReturnUrlFallback(body.item_id) : undefined);
+  if (!redirectUrl) {
+    return {
+      ok: false,
+      error:
+        "Missing redirect URL. Redeploy Edge Functions (create-stripe-identity-session + stripe-identity-return).",
+    };
+  }
+
+  const browserResult = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
 
   if (browserResult.type === "success") {
     return {
@@ -60,10 +113,12 @@ async function invokeCreateSession(body: {
 export async function openStripeIdentityForClaim(
   claimId: string,
 ): Promise<StripeIdentitySessionResult> {
-  const returnUrl = Linking.createURL("/staff/verify", {
-    queryParams: { claimId },
+  return invokeCreateSession({
+    claim_id: claimId,
+    return_url: Linking.createURL("/staff/verify", {
+      queryParams: { claimId },
+    }),
   });
-  return invokeCreateSession({ claim_id: claimId, return_url: returnUrl });
 }
 
 /**
@@ -72,6 +127,8 @@ export async function openStripeIdentityForClaim(
 export async function openStripeIdentityBeforeClaim(
   itemId: string,
 ): Promise<StripeIdentitySessionResult> {
-  const returnUrl = Linking.createURL(`/claim/${itemId}`);
-  return invokeCreateSession({ item_id: itemId, return_url: returnUrl });
+  return invokeCreateSession({
+    item_id: itemId,
+    return_url: claimReturnUrlFallback(itemId),
+  });
 }

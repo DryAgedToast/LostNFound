@@ -259,19 +259,31 @@ export default function PostScreen() {
           image_url: imageUrl,
           status: "unclaimed",
           custom_questions: customQuestions,
-        })
+        } as never)
         .select("id")
         .single();
 
       if (insertError) throw insertError;
       if (!data) throw new Error("No item returned after insert.");
 
-      router.replace(`/item/${data.id}`);
+      const inserted = data as { id: string };
+      // Use push so the stack keeps a parent screen; replace after post often left
+      // nothing to go back to (GO_BACK / development warning).
+      router.push(`/item/${inserted.id}`);
     } catch (err: unknown) {
       if (isDatabaseUnavailableError(err)) {
         showDatabaseNotConnectedPopup();
       }
-      setError("Unable to save. Check your connection.");
+      const message =
+        err !== null &&
+        typeof err === "object" &&
+        "message" in err &&
+        typeof (err as { message: unknown }).message === "string"
+          ? (err as { message: string }).message
+          : err instanceof Error
+            ? err.message
+            : "Unable to save. Check your connection and Supabase env.";
+      setError(message);
     } finally {
       setSubmitting(false);
     }

@@ -190,7 +190,16 @@ export default function ClaimScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
+            }}
+          >
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
 

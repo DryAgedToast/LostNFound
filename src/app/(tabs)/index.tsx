@@ -32,6 +32,7 @@ export default function FeedScreen() {
     ItemCategory | "all"
   >("all");
   const [authChecked, setAuthChecked] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Auth gate
   useEffect(() => {
@@ -49,20 +50,70 @@ export default function FeedScreen() {
   }, [router]);
 
   const fetchItems = useCallback(async () => {
+    setLoadError(null);
+    const statusFilter = ["unclaimed", "at_hotspot"] as const;
+
+    const mapRowsToWithPoster = (
+      rows: Record<string, unknown>[],
+    ): ItemWithPoster[] =>
+      rows.map((row) => {
+        const base = row as unknown as ItemWithPoster;
+        return {
+          ...base,
+          profiles:
+            base.profiles ??
+            ({
+              id: String(row.poster_id ?? ""),
+              user_id: "",
+              display_name: "Unknown",
+              email: "",
+              avatar_url: null,
+              role: "student",
+              created_at: new Date(0).toISOString(),
+            } as ItemWithPoster["profiles"]),
+          hotspots: base.hotspots ?? null,
+        };
+      });
+
     try {
       const { data, error } = await supabase
         .from("items")
-        .select("*, profiles(*), hotspots(*)")
-        .in("status", ["unclaimed", "at_hotspot"])
+        .select("*, profiles!poster_id(*), hotspots!hotspot_id(*)")
+        .in("status", [...statusFilter])
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       const dbItems = (data ?? []) as unknown as ItemWithPoster[];
-      // If DB is connected but empty, show mock data in dev mode so there's something to see
       setItems(dbItems.length === 0 && DEMO_MODE ? getMockItems() : dbItems);
-    } catch {
-      // Fallback to mock data if database is unreachable
-      setItems(getMockItems());
+    } catch (firstErr: unknown) {
+      try {
+        const { data, error } = await supabase
+          .from("items")
+          .select("*")
+          .in("status", [...statusFilter])
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        const rows = (data ?? []) as Record<string, unknown>[];
+        setItems(
+          rows.length === 0 && DEMO_MODE ? getMockItems() : mapRowsToWithPoster(rows),
+        );
+        if (rows.length > 0) {
+          setLoadError(
+            "Loaded items without poster details (database relationship hint failed).",
+          );
+        }
+      } catch (secondErr: unknown) {
+        const msg =
+          secondErr instanceof Error
+            ? secondErr.message
+            : "Could not load items from the database.";
+        setLoadError(msg);
+        setItems(getMockItems());
+        if (__DEV__) {
+          console.warn("[Feed] items query failed:", firstErr, secondErr);
+        }
+      }
     }
   }, []);
 
@@ -194,11 +245,36 @@ export default function FeedScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {searchQuery.trim() !== "" || selectedCategory !== "all"
-                  ? "No items match your filters."
-                  : "No lost items posted yet"}
-              </Text>
+              {loadError !== null ? (
+                <>
+                  <Text style={[styles.emptyText, { color: colors.text }]}>
+                    Could not load items
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: colors.textSecondary, marginTop: Spacing.two },
+                    ]}
+                  >
+                    {loadError}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: colors.textSecondary, marginTop: Spacing.two },
+                    ]}
+                  >
+                    Check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
+                    in .env, then restart Expo (clear cache if needed).
+                  </Text>
+                </>
+              ) : (
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  {searchQuery.trim() !== "" || selectedCategory !== "all"
+                    ? "No items match your filters."
+                    : "No lost items posted yet"}
+                </Text>
+              )}
             </View>
           }
         />

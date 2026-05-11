@@ -13,15 +13,16 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function isAllowedReturnUrl(url: string): boolean {
-  try {
-    const u = new URL(url);
-    if (u.protocol === 'lostnfound:' || u.protocol === 'exp:') return true;
-    if (u.protocol === 'https:') return true;
-    return false;
-  } catch {
-    return false;
-  }
+/** HTTPS URL Stripe accepts; redirects into the app via `stripe-identity-return`. */
+function stripeIdentityReturnUrl(
+  supabaseProjectUrl: string,
+  params: { claim_item_id?: string; claim_id?: string },
+): string {
+  const base = supabaseProjectUrl.replace(/\/$/, '');
+  const u = new URL(`${base}/functions/v1/stripe-identity-return`);
+  if (params.claim_item_id) u.searchParams.set('claim_item_id', params.claim_item_id);
+  if (params.claim_id) u.searchParams.set('claim_id', params.claim_id);
+  return u.toString();
 }
 
 serve(async (req: Request) => {
@@ -75,7 +76,6 @@ serve(async (req: Request) => {
 
   let claimId: string | undefined;
   let itemId: string | undefined;
-  let returnUrl: string | undefined;
   try {
     const body = (await req.json()) as {
       claim_id?: string;
@@ -84,16 +84,8 @@ serve(async (req: Request) => {
     };
     claimId = typeof body.claim_id === 'string' ? body.claim_id : undefined;
     itemId = typeof body.item_id === 'string' ? body.item_id : undefined;
-    returnUrl = typeof body.return_url === 'string' ? body.return_url : undefined;
   } catch {
     return jsonResponse({ error: 'Invalid JSON body' }, 400);
-  }
-
-  if (!returnUrl || !isAllowedReturnUrl(returnUrl)) {
-    return jsonResponse(
-      { error: 'return_url is required and must be a lostnfound://, exp://, or https:// URL' },
-      400,
-    );
   }
 
   const isStaffReview = Boolean(claimId);
@@ -110,9 +102,13 @@ serve(async (req: Request) => {
     return jsonResponse({ error: 'Staff or admin role required' }, 403);
   }
 
+  const stripeReturnUrl = itemId
+    ? stripeIdentityReturnUrl(supabaseUrl, { claim_item_id: itemId })
+    : stripeIdentityReturnUrl(supabaseUrl, { claim_id: claimId! });
+
   const form = new URLSearchParams();
   form.set('type', 'document');
-  form.set('return_url', returnUrl);
+  form.set('return_url', stripeReturnUrl);
   form.set('metadata[supabase_user_id]', user.id);
   form.set('metadata[claimant_profile_id]', profileId);
   if (claimId) form.set('metadata[claim_id]', claimId);
@@ -140,7 +136,10 @@ serve(async (req: Request) => {
 
   if (!stripeBody.url) {
     return jsonResponse(
-      { error: 'Stripe did not return a hosted session URL. Check Identity is enabled for your account.' },
+      {
+        error:
+          'Stripe did not return a hosted session URL. Check Identity is enabled for your account.',
+      },
       502,
     );
   }
@@ -148,5 +147,6 @@ serve(async (req: Request) => {
   return jsonResponse({
     url: stripeBody.url,
     verification_session_id: stripeBody.id,
+    stripe_return_url: stripeReturnUrl,
   });
 });

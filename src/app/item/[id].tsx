@@ -132,7 +132,7 @@ export default function ItemDetailScreen() {
         getCurrentProfile(),
         supabase
           .from("items")
-          .select("*, profiles(*), hotspots(*)")
+          .select("*, profiles!poster_id(*), hotspots!hotspot_id(*)")
           .eq("id", id)
           .single(),
       ]);
@@ -327,7 +327,13 @@ export default function ItemDetailScreen() {
         {/* Back button */}
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/");
+            }
+          }}
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
