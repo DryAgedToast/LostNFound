@@ -12,9 +12,7 @@ export function isDatabaseUnavailableError(error: unknown): boolean {
     message.includes("fetch failed") ||
     message.includes("network request failed") ||
     message.includes("enotfound") ||
-    message.includes("failed to fetch") ||
-    message.includes("unable to connect") ||
-    message.includes("check your connection")
+    message.includes("failed to fetch")
   );
 }
 

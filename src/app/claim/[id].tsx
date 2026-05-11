@@ -48,7 +48,12 @@ export default function ClaimScreen() {
     try {
       const [profile, itemRes] = await Promise.all([
         getCurrentProfile(),
-        supabase.from('items').select('*').eq('id', id).single(),
+        supabase
+          .from('items')
+          .select('*')
+          .eq('id', id)
+          .is('deleted_at', null)
+          .single(),
       ]);
 
       if (!profile) throw new Error('Not authenticated');
@@ -132,19 +137,47 @@ export default function ClaimScreen() {
         ];
       }
 
-      const { error: insertErr } = await supabase.from('claims').insert({
-        item_id: item.id,
-        claimant_id: currentProfile.id,
-        custom_answers: customAnswers,
-        status: 'pending',
-        ...(stripeVerificationSessionId !== null && {
-          stripe_verification_session_id: stripeVerificationSessionId,
-        }),
-      } as never);
+      const { data: claimData, error: insertErr } = await supabase
+        .from('claims')
+        .insert({
+          item_id: item.id,
+          claimant_id: currentProfile.id,
+          custom_answers: customAnswers,
+          status: 'pending',
+          ...(stripeVerificationSessionId !== null && {
+            stripe_verification_session_id: stripeVerificationSessionId,
+          }),
+        } as never)
+        .select('id')
+        .single();
 
       if (insertErr) throw insertErr;
+      const createdClaim = claimData as { id: string } | null;
+      if (!createdClaim) throw new Error('Claim created without an id.');
 
-      router.replace('/(tabs)/messages');
+      const { error: statusErr } = await supabase
+        .from('items')
+        .update({ status: 'pending' } as never)
+        .eq('id', item.id);
+      if (statusErr) throw statusErr;
+
+      const firstMessage = customAnswers
+        .map(({ question, answer }) => `${question}\n${answer.trim()}`)
+        .join('\n\n');
+
+      const { error: messageErr } = await supabase.from('messages').insert({
+        claim_id: createdClaim.id,
+        sender_id: currentProfile.id,
+        content: firstMessage,
+        message_type: 'user',
+      } as never);
+
+      if (messageErr) throw messageErr;
+
+      router.replace({
+        pathname: "/(tabs)/messages",
+        params: { claimId: createdClaim.id },
+      });
     } catch (err: unknown) {
       if (isDatabaseUnavailableError(err)) {
         showDatabaseNotConnectedPopup();

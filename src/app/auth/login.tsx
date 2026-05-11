@@ -1,9 +1,13 @@
+import DbStatusBadge from "@/components/DbStatusBadge";
 import { Colors, Spacing } from "@/constants/theme";
 import {
   DEV_LOGIN_EMAIL,
   DEV_LOGIN_PASSWORD,
   DEV_MODE,
+  DEV_TEACHER_EMAIL,
+  DEV_TEACHER_PASSWORD,
   devBypassLogin,
+  devTeacherLogin,
   signIn,
 } from "@/lib/auth";
 import {
@@ -56,12 +60,8 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const { role } = await signIn(email.trim(), password);
-      if (role === "staff" || role === "admin") {
-        router.replace("/staff/dashboard");
-      } else {
-        router.replace("/(tabs)/");
-      }
+      await signIn(email.trim(), password);
+      router.replace("/(tabs)/");
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -80,14 +80,23 @@ export default function LoginScreen() {
     setError(null);
     setLoading(true);
     try {
-      const { role } = await devBypassLogin();
-      if (role === "staff" || role === "admin") {
-        router.replace("/staff/dashboard");
-      } else {
-        router.replace("/(tabs)/");
-      }
+      await devBypassLogin();
+      router.replace("/(tabs)/");
     } catch {
       setError("Unable to start dev bypass session.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTeacherLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await devTeacherLogin();
+      router.replace("/(tabs)/");
+    } catch {
+      setError("Unable to sign in as teacher test account.");
     } finally {
       setLoading(false);
     }
@@ -185,15 +194,26 @@ export default function LoginScreen() {
             <View style={styles.devBypassRow}>
               {DEV_LOGIN_EMAIL.length > 0 && (
                 <Text style={styles.devHintText}>
-                  Dev test login: {DEV_LOGIN_EMAIL}
-                  {DEV_LOGIN_PASSWORD.length > 0
-                    ? ` / ${DEV_LOGIN_PASSWORD}`
-                    : ""}
+                  Dev: {DEV_LOGIN_EMAIL}
+                  {DEV_LOGIN_PASSWORD.length > 0 ? ` / ${DEV_LOGIN_PASSWORD}` : ""}
                 </Text>
               )}
               <TouchableOpacity onPress={handleDevLogin} disabled={loading}>
                 <Text style={styles.devBypassText}>Dev Login (Bypass)</Text>
               </TouchableOpacity>
+
+              {DEV_TEACHER_EMAIL.length > 0 && DEV_TEACHER_PASSWORD.length > 0 && (
+                <>
+                  <Text style={[styles.devHintText, { marginTop: Spacing.two }]}>
+                    Teacher: {DEV_TEACHER_EMAIL} / {DEV_TEACHER_PASSWORD}
+                  </Text>
+                  <TouchableOpacity onPress={handleTeacherLogin} disabled={loading}>
+                    <Text style={styles.devBypassText}>Teacher Test Login</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              <DbStatusBadge />
             </View>
           )}
         </ScrollView>
