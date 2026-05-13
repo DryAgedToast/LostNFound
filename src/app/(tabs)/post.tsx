@@ -7,6 +7,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import type { CustomQuestion, Hotspot, ItemCategory, Profile } from "@/types";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { File as ExpoFsFile } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -57,6 +58,27 @@ function generateLocalId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+/** Native `file://` URIs often fail with `fetch`+blob; read bytes explicitly. */
+async function readLocalImageAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
+  if (Platform.OS === "web") {
+    const res = await fetch(uri);
+    if (!res.ok) {
+      throw new Error(`Could not read image (HTTP ${res.status})`);
+    }
+    return await res.blob().then((b) => b.arrayBuffer());
+  }
+
+  try {
+    return await new ExpoFsFile(uri).arrayBuffer();
+  } catch {
+    const res = await fetch(uri);
+    if (!res.ok) {
+      throw new Error(`Could not read image (HTTP ${res.status})`);
+    }
+    return await res.blob().then((b) => b.arrayBuffer());
+  }
+}
+
 export default function PostScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
@@ -71,6 +93,7 @@ export default function PostScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [cameraVisible, setCameraVisible] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const pickedImageMimeRef = useRef<string | undefined>(undefined);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<ItemCategory>("other");
   const [description, setDescription] = useState("");
@@ -136,7 +159,10 @@ export default function PostScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      pickedImageMimeRef.current =
+        typeof asset.mimeType === "string" ? asset.mimeType : undefined;
+      setImageUri(asset.uri);
     }
   }, []);
 
@@ -161,6 +187,7 @@ export default function PostScreen() {
     try {
       const captured = await cameraRef.current.takePictureAsync({ quality: 0.8 });
       if (captured?.uri) {
+        pickedImageMimeRef.current = undefined;
         setImageUri(captured.uri);
       }
       setCameraVisible(false);
@@ -190,35 +217,73 @@ export default function PostScreen() {
   const uploadImage = async (
     uri: string,
     posterId: string,
+    mimeHint?: string,
   ): Promise<string> => {
-    try {
-      const maybeExt = uri.split(".").pop()?.toLowerCase();
-      const ext =
-        maybeExt && maybeExt.length <= 5 && /^[a-z0-9]+$/.test(maybeExt)
-          ? maybeExt
-          : "jpg";
-      const fileName = `${posterId}-${Date.now()}.${ext}`;
-
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-
-      const { error: uploadError } = await supabase.storage
-        .from("item-images")
-        .upload(fileName, arrayBuffer, {
-          contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("item-images")
-        .getPublicUrl(fileName);
-      return urlData.publicUrl;
-    } catch {
-      throw new Error("Unable to upload image.");
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error(
+        "You must be signed in to upload a photo. Try logging out and back in.",
+      );
     }
+
+    const maybeExt = uri.split(".").pop()?.toLowerCase();
+    const ext =
+      maybeExt && maybeExt.length <= 5 && /^[a-z0-9]+$/.test(maybeExt)
+        ? maybeExt
+        : "jpg";
+
+    const contentType =
+      mimeHint && mimeHint.startsWith("image/")
+        ? mimeHint
+        : `image/${ext === "jpg" ? "jpeg" : ext}`;
+
+    const fileName = `${posterId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    let arrayBuffer: ArrayBuffer;
+    try {
+      arrayBuffer = await readLocalImageAsArrayBuffer(uri);
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : "Could not read the image from your device.";
+      throw new Error(msg);
+    }
+
+    const bytes = new Uint8Array(arrayBuffer);
+    const body =
+      typeof Blob !== "undefined"
+        ? new Blob([bytes], { type: contentType })
+        : bytes;
+
+    const { error: uploadError } = await supabase.storage
+      .from("item-images")
+      .upload(fileName, body, {
+        contentType,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      const hint =
+        uploadError.message?.includes("row-level security") ||
+        uploadError.message?.includes("RLS")
+          ? " Storage policy blocked the upload. Apply migration 005_storage_item_images_bucket.sql (or add INSERT policy on storage.objects for bucket item-images)."
+          : "";
+      throw new Error(
+        (uploadError.message || "Storage rejected the upload.") + hint,
+      );
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("item-images")
+      .getPublicUrl(fileName);
+    const publicUrl = urlData.publicUrl;
+    if (!publicUrl?.trim()) {
+      throw new Error("Upload succeeded but no public URL was returned.");
+    }
+    return publicUrl;
   };
 
   const handleSubmit = useCallback(async () => {
@@ -240,7 +305,11 @@ export default function PostScreen() {
     try {
       let imageUrl: string | null = null;
       if (imageUri) {
-        imageUrl = await uploadImage(imageUri, profile.user_id);
+        imageUrl = await uploadImage(
+          imageUri,
+          profile.user_id,
+          pickedImageMimeRef.current,
+        );
       }
 
       const customQuestions: CustomQuestion[] = questions
@@ -269,7 +338,7 @@ export default function PostScreen() {
       const inserted = data as { id: string };
       // Use push so the stack keeps a parent screen; replace after post often left
       // nothing to go back to (GO_BACK / development warning).
-      router.push(`/item/${inserted.id}`);
+      router.replace(`/item/${inserted.id}?from=post`);
     } catch (err: unknown) {
       if (isDatabaseUnavailableError(err)) {
         showDatabaseNotConnectedPopup();
@@ -371,7 +440,12 @@ export default function PostScreen() {
             </TouchableOpacity>
           </View>
           {imageUri && (
-            <TouchableOpacity onPress={() => setImageUri(null)}>
+            <TouchableOpacity
+              onPress={() => {
+                pickedImageMimeRef.current = undefined;
+                setImageUri(null);
+              }}
+            >
               <Text style={styles.removePhotoText}>Remove photo</Text>
             </TouchableOpacity>
           )}

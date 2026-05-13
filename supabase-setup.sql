@@ -462,3 +462,20 @@ begin
     ('Hullihen Hall Main Office',        'admin_building', '104 Hullihen Hall, Newark, DE 19716',  39.6577, -75.7508, udel_code_id, true)
   on conflict do nothing;
 end $$;
+
+-- ============================================================
+-- STORAGE: item-images (bucket + RLS; mirrors migrations/005)
+-- ============================================================
+
+insert into storage.buckets (id, name, public)
+values ('item-images', 'item-images', true)
+on conflict (id) do update set public = excluded.public;
+
+drop policy if exists "item_images_public_read" on storage.objects;
+drop policy if exists "item_images_auth_insert" on storage.objects;
+
+create policy "item_images_public_read" on storage.objects
+for select using (bucket_id = 'item-images');
+
+create policy "item_images_auth_insert" on storage.objects
+for insert with check (bucket_id = 'item-images' and auth.uid() is not null);

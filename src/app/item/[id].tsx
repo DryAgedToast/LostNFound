@@ -91,8 +91,13 @@ function formatTime(isoString: string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ItemDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{
+    id: string;
+    from?: string | string[];
+  }>();
   const router = useRouter();
+  const fromPost =
+    from === "post" || (Array.isArray(from) && from[0] === "post");
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
@@ -561,9 +566,11 @@ export default function ItemDetailScreen() {
             onPress={() =>
               editMode
                 ? cancelEditMode()
-                : router.canGoBack()
-                  ? router.back()
-                  : router.replace("/")
+                : fromPost
+                  ? router.replace("/(tabs)")
+                  : router.canGoBack()
+                    ? router.back()
+                    : router.replace("/")
             }
           >
             <Text style={styles.backButtonText}>

@@ -2,19 +2,43 @@
 -- LostNFound — Full Database Schema
 -- ============================================================
 
--- ENUMS
-CREATE TYPE user_role AS ENUM ('student', 'staff', 'admin');
-CREATE TYPE item_category AS ENUM ('electronics', 'clothing', 'keys', 'wallet', 'id_card', 'bag', 'other');
-CREATE TYPE item_status AS ENUM ('unclaimed', 'pending', 'claimed', 'at_hotspot');
-CREATE TYPE claim_status AS ENUM ('pending', 'approved', 'rejected', 'awaiting_in_person');
-CREATE TYPE id_type AS ENUM ('drivers_license', 'state_id', 'passport', 'student_id');
-CREATE TYPE purge_status AS ENUM ('active', 'scheduled_purge', 'purged');
-CREATE TYPE theft_claim_status AS ENUM ('open', 'under_review', 'resolved');
-CREATE TYPE building_type AS ENUM ('library', 'student_center', 'lecture_hall', 'gym', 'admin_building', 'other');
+-- ENUMS (idempotent: safe if types already exist from a prior run)
+DO $$ BEGIN
+  CREATE TYPE user_role AS ENUM ('student', 'staff', 'admin');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE item_category AS ENUM ('electronics', 'clothing', 'keys', 'wallet', 'id_card', 'bag', 'other');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE item_status AS ENUM ('unclaimed', 'pending', 'claimed', 'at_hotspot');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE claim_status AS ENUM ('pending', 'approved', 'rejected', 'awaiting_in_person');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE id_type AS ENUM ('drivers_license', 'state_id', 'passport', 'student_id');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE purge_status AS ENUM ('active', 'scheduled_purge', 'purged');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE theft_claim_status AS ENUM ('open', 'under_review', 'resolved');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE building_type AS ENUM ('library', 'student_center', 'lecture_hall', 'gym', 'admin_building', 'other');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- TABLES
 
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL,
@@ -25,7 +49,7 @@ CREATE TABLE profiles (
   UNIQUE(user_id)
 );
 
-CREATE TABLE hotspots (
+CREATE TABLE IF NOT EXISTS hotspots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   building_type building_type NOT NULL,
@@ -37,7 +61,7 @@ CREATE TABLE hotspots (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE items (
+CREATE TABLE IF NOT EXISTS items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   poster_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -51,7 +75,7 @@ CREATE TABLE items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE identity_records (
+CREATE TABLE IF NOT EXISTS identity_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   id_image_front_url TEXT,
@@ -67,7 +91,7 @@ CREATE TABLE identity_records (
   theft_hold BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE TABLE claims (
+CREATE TABLE IF NOT EXISTS claims (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_id UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
   claimant_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -80,7 +104,7 @@ CREATE TABLE claims (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE theft_claims (
+CREATE TABLE IF NOT EXISTS theft_claims (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_id UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
   original_owner_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -91,7 +115,7 @@ CREATE TABLE theft_claims (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   claim_id UUID NOT NULL REFERENCES claims(id) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -99,7 +123,7 @@ CREATE TABLE messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE hotspot_dropoffs (
+CREATE TABLE IF NOT EXISTS hotspot_dropoffs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_id UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
   hotspot_id UUID NOT NULL REFERENCES hotspots(id) ON DELETE CASCADE,
@@ -112,8 +136,10 @@ CREATE TABLE hotspot_dropoffs (
 -- STORAGE BUCKETS
 -- ============================================================
 
-INSERT INTO storage.buckets (id, name, public) VALUES ('item-images', 'item-images', true);
-INSERT INTO storage.buckets (id, name, public) VALUES ('identity-records', 'identity-records', false);
+INSERT INTO storage.buckets (id, name, public) VALUES ('item-images', 'item-images', true)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('identity-records', 'identity-records', false)
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- ROW LEVEL SECURITY
@@ -136,6 +162,35 @@ $$ LANGUAGE SQL SECURITY DEFINER STABLE;
 CREATE OR REPLACE FUNCTION current_user_role() RETURNS user_role AS $$
   SELECT role FROM profiles WHERE user_id = auth.uid()
 $$ LANGUAGE SQL SECURITY DEFINER STABLE;
+
+-- Policies (drop first so migration can be re-applied)
+DROP POLICY IF EXISTS "profiles_select_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
+DROP POLICY IF EXISTS "hotspots_select_all" ON hotspots;
+DROP POLICY IF EXISTS "hotspots_insert_admin" ON hotspots;
+DROP POLICY IF EXISTS "hotspots_update_admin" ON hotspots;
+DROP POLICY IF EXISTS "items_select_student" ON items;
+DROP POLICY IF EXISTS "items_insert_auth" ON items;
+DROP POLICY IF EXISTS "items_update_own_or_staff" ON items;
+DROP POLICY IF EXISTS "claims_select_involved" ON claims;
+DROP POLICY IF EXISTS "claims_insert_student" ON claims;
+DROP POLICY IF EXISTS "claims_update_staff" ON claims;
+DROP POLICY IF EXISTS "identity_records_select_staff_admin" ON identity_records;
+DROP POLICY IF EXISTS "identity_records_insert_staff" ON identity_records;
+DROP POLICY IF EXISTS "identity_records_update_admin" ON identity_records;
+DROP POLICY IF EXISTS "theft_claims_select" ON theft_claims;
+DROP POLICY IF EXISTS "theft_claims_insert" ON theft_claims;
+DROP POLICY IF EXISTS "theft_claims_update_admin" ON theft_claims;
+DROP POLICY IF EXISTS "messages_select_claim_parties" ON messages;
+DROP POLICY IF EXISTS "messages_insert_claim_parties" ON messages;
+DROP POLICY IF EXISTS "hotspot_dropoffs_select_staff" ON hotspot_dropoffs;
+DROP POLICY IF EXISTS "hotspot_dropoffs_insert_staff" ON hotspot_dropoffs;
+DROP POLICY IF EXISTS "item_images_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "item_images_auth_insert" ON storage.objects;
+DROP POLICY IF EXISTS "identity_records_storage_select" ON storage.objects;
+DROP POLICY IF EXISTS "identity_records_storage_insert" ON storage.objects;
+DROP POLICY IF EXISTS "identity_records_storage_delete" ON storage.objects;
 
 -- PROFILES
 CREATE POLICY "profiles_select_own" ON profiles FOR SELECT USING (true);

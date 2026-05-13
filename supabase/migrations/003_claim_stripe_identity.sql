@@ -4,3 +4,4 @@ ALTER TABLE claims
 
 COMMENT ON COLUMN claims.stripe_verification_session_id IS
   'Stripe Identity VerificationSession id (vs_...) when claimant verified via Stripe before submitting.';
+
