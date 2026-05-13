@@ -6,10 +6,11 @@ import { getMockItems } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import type { ItemCategory, ItemWithPoster } from "@/types";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   SafeAreaView,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
   TextInput,
   TouchableOpacity,
   useColorScheme,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -29,10 +31,75 @@ const STATUS_FILTERS: { key: FeedStatusFilter; label: string }[] = [
   { key: "all", label: "All" },
 ];
 
+const FEED_MAX_WIDTH = 1200;
+const FEED_COLUMN_GAP = Spacing.two;
+
 export default function FeedScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
   const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
+  const isWeb = Platform.OS === "web";
+
+  /** Web: always 3 columns (fixed-width slots). Native: 1 col on narrow phones, else 2. */
+  const { numColumns, cardSlotStyle, columnWrapperStyle } = useMemo(() => {
+    const horizontalPadding = Spacing.two * 2;
+    const contentWidth = Math.max(
+      0,
+      Math.min(windowWidth, FEED_MAX_WIDTH) - horizontalPadding,
+    );
+
+    if (isWeb) {
+      const slotW = Math.max(
+        0,
+        Math.floor((contentWidth - FEED_COLUMN_GAP * 2) / 3),
+      );
+      return {
+        numColumns: 3 as const,
+        cardSlotStyle: {
+          width: slotW,
+          maxWidth: slotW,
+          flexGrow: 0,
+          flexShrink: 0,
+        },
+        columnWrapperStyle: [
+          styles.columnWrapper,
+          { gap: FEED_COLUMN_GAP },
+        ] as const,
+      };
+    }
+
+    if (windowWidth < 420) {
+      return {
+        numColumns: 1 as const,
+        cardSlotStyle: {
+          width: contentWidth,
+          maxWidth: contentWidth,
+          flexGrow: 0,
+          flexShrink: 0,
+        },
+        columnWrapperStyle: undefined,
+      };
+    }
+
+    const slotW = Math.max(
+      0,
+      Math.floor((contentWidth - FEED_COLUMN_GAP) / 2),
+    );
+    return {
+      numColumns: 2 as const,
+      cardSlotStyle: {
+        width: slotW,
+        maxWidth: slotW,
+        flexGrow: 0,
+        flexShrink: 0,
+      },
+      columnWrapperStyle: [
+        styles.columnWrapper,
+        { gap: FEED_COLUMN_GAP },
+      ] as const,
+    };
+  }, [isWeb, windowWidth]);
 
   const [items, setItems] = useState<ItemWithPoster[]>([]);
   const [archivedItems, setArchivedItems] = useState<ItemWithPoster[]>([]);
@@ -255,11 +322,15 @@ export default function FeedScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: ItemWithPoster }) => (
-      <View style={styles.cardWrapper}>
-        <ItemCard item={item} onPress={() => router.push(`/item/${item.id}`)} />
+      <View style={[styles.cardWrapper, cardSlotStyle]}>
+        <ItemCard
+          item={item}
+          compactGrid
+          onPress={() => router.push(`/item/${item.id}`)}
+        />
       </View>
     ),
-    [router],
+    [router, cardSlotStyle],
   );
 
   const keyExtractor = (item: ItemWithPoster) => item.id;
@@ -412,12 +483,13 @@ export default function FeedScreen() {
         </View>
       ) : (
         <FlatList
+          key={isWeb ? "feed-web-3" : `feed-native-${numColumns}`}
           data={selectedView === "active" ? filteredItems : filteredArchivedItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          numColumns={2}
+          numColumns={numColumns}
           contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.columnWrapper}
+          columnWrapperStyle={columnWrapperStyle}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -512,7 +584,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
   },
   viewSwitchButtonActive: {
-    backgroundColor: "#1877F2",
+    backgroundColor: "#0072CE",
   },
   viewSwitchText: {
     fontSize: 13,
@@ -555,11 +627,10 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   columnWrapper: {
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
   },
-  cardWrapper: {
-    flex: 1,
-  },
+  cardWrapper: {},
   emptyContainer: {
     flex: 1,
     paddingTop: Spacing.six,

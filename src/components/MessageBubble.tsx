@@ -82,7 +82,7 @@ export default function MessageBubble({
           style={[
             styles.bubble,
             isOwn
-              ? [styles.bubbleOwn, { backgroundColor: '#1877F2' }]
+              ? [styles.bubbleOwn, { backgroundColor: '#0072CE' }]
               : [styles.bubbleOther, { backgroundColor: colors.backgroundElement }],
           ]}
         >
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#1877F2',
+    backgroundColor: '#0072CE',
     alignItems: 'center',
     justifyContent: 'center',
   },

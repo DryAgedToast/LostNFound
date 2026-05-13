@@ -28,6 +28,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CATEGORIES: ItemCategory[] = [
   "electronics",
@@ -83,6 +84,7 @@ export default function PostScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Auth / profile state
   const [authChecked, setAuthChecked] = useState(false);
@@ -397,31 +399,35 @@ export default function PostScreen() {
           {/* Image picker */}
           <SectionLabel label="Photo (optional)" colors={colors} />
           <TouchableOpacity
-            style={[
-              styles.imagePicker,
-              { backgroundColor: colors.backgroundElement },
-            ]}
+            style={styles.imagePickerOuter}
             onPress={pickImage}
             activeOpacity={0.8}
           >
-            {imageUri ? (
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.imagePreview}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={styles.imagePlaceholderContent}>
-                <Text
-                  style={[
-                    styles.imagePlaceholderText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Add a photo from camera or library
-                </Text>
-              </View>
-            )}
+            <View
+              style={[
+                styles.imagePreviewFrame,
+                { backgroundColor: colors.backgroundElement },
+              ]}
+            >
+              {imageUri ? (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.imagePreview}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={styles.imagePlaceholderContent}>
+                  <Text
+                    style={[
+                      styles.imagePlaceholderText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Add a photo from camera or library
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
           <View style={styles.photoActionsRow}>
             <TouchableOpacity
@@ -741,20 +747,36 @@ export default function PostScreen() {
         <View style={styles.cameraContainer}>
           <CameraView ref={cameraRef} style={styles.camera} facing="back">
             <View style={styles.cameraOverlay}>
-              <Text style={styles.cameraLabel}>Take Item Photo</Text>
-              <TouchableOpacity
-                style={styles.captureButton}
-                onPress={takePhoto}
-                activeOpacity={0.8}
+              <View
+                style={[
+                  styles.cameraTopBar,
+                  { paddingTop: Spacing.three + insets.top },
+                ]}
               >
-                <View style={styles.captureButtonInner} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cameraCancelButton}
-                onPress={() => setCameraVisible(false)}
+                <Text style={styles.cameraLabel}>Take Item Photo</Text>
+              </View>
+              <View style={styles.cameraSpacer} />
+              <View
+                style={[
+                  styles.cameraBottomBar,
+                  { paddingBottom: Spacing.four + insets.bottom },
+                ]}
               >
-                <Text style={styles.cameraCancelText}>Cancel</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={takePhoto}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.captureButtonInner} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.cameraCancelButton}
+                  onPress={() => setCameraVisible(false)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.cameraCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </CameraView>
         </View>
@@ -815,10 +837,16 @@ const styles = StyleSheet.create({
     minHeight: 100,
     paddingTop: Spacing.two + Spacing.one,
   },
-  imagePicker: {
+  /** Centered square preview so photos are not stretched wide/short */
+  imagePickerOuter: {
     width: "100%",
-    height: 180,
-    borderRadius: 12,
+    maxWidth: 400,
+    alignSelf: "center",
+  },
+  imagePreviewFrame: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 0,
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
@@ -987,9 +1015,17 @@ const styles = StyleSheet.create({
   },
   cameraOverlay: {
     flex: 1,
-    justifyContent: "space-between",
+  },
+  cameraTopBar: {
     alignItems: "center",
-    paddingVertical: Spacing.five,
+    paddingHorizontal: Spacing.four,
+  },
+  cameraSpacer: {
+    flex: 1,
+  },
+  cameraBottomBar: {
+    alignItems: "center",
+    paddingTop: Spacing.two,
   },
   cameraLabel: {
     color: "#FFFFFF",
@@ -999,6 +1035,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     borderRadius: 10,
+    overflow: "hidden",
   },
   captureButton: {
     width: 78,
@@ -1008,6 +1045,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: Spacing.three,
   },
   captureButtonInner: {
     width: 58,

@@ -238,15 +238,17 @@ export default function ClaimScreen() {
 
           <Text style={styles.screenTitle}>Submit a Claim</Text>
 
-          {/* Item preview */}
+          {/* Item preview — square frame so photos are not stretched wide */}
           {item.image_url !== null ? (
-            <Image
-              source={{ uri: item.image_url }}
-              style={styles.itemImage}
-              resizeMode="cover"
-            />
+            <View style={styles.itemImageFrame}>
+              <Image
+                source={{ uri: item.image_url }}
+                style={styles.itemImage}
+                resizeMode="cover"
+              />
+            </View>
           ) : (
-            <View style={styles.imagePlaceholder}>
+            <View style={[styles.itemImageFrame, styles.imagePlaceholder]}>
               <Text style={styles.imagePlaceholderText}>No Image</Text>
             </View>
           )}
@@ -348,20 +350,23 @@ function makeStyles(colors: typeof Colors.light) {
       color: colors.text,
       marginBottom: Spacing.three,
     },
+    itemImageFrame: {
+      width: '100%',
+      maxWidth: 420,
+      alignSelf: 'center',
+      aspectRatio: 1,
+      marginBottom: Spacing.three,
+      overflow: 'hidden',
+      borderRadius: 0,
+      backgroundColor: colors.backgroundElement,
+    },
     itemImage: {
       width: '100%',
-      height: 200,
-      borderRadius: 12,
-      marginBottom: Spacing.three,
+      height: '100%',
     },
     imagePlaceholder: {
-      width: '100%',
-      height: 200,
-      borderRadius: 12,
-      backgroundColor: colors.backgroundElement,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: Spacing.three,
     },
     imagePlaceholderText: {
       color: colors.textSecondary,

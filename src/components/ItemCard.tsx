@@ -13,6 +13,8 @@ import {
 interface ItemCardProps {
   item: ItemWithPoster;
   onPress: () => void;
+  /** Tighter horizontal margins for percentage-width feed cells */
+  compactGrid?: boolean;
 }
 
 const STATUS_COLORS: Record<ItemStatus, string> = {
@@ -63,7 +65,11 @@ function getRelativeTime(dateString: string): string {
   return `${diffMonths}mo ago`;
 }
 
-export default function ItemCard({ item, onPress }: ItemCardProps) {
+export default function ItemCard({
+  item,
+  onPress,
+  compactGrid = false,
+}: ItemCardProps) {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
@@ -77,6 +83,7 @@ export default function ItemCard({ item, onPress }: ItemCardProps) {
     <TouchableOpacity
       style={[
         styles.card,
+        compactGrid && styles.cardCompactGrid,
         {
           backgroundColor: colors.backgroundElement,
           shadowColor: colorScheme === "dark" ? "#000" : "#000",
@@ -155,7 +162,7 @@ export default function ItemCard({ item, onPress }: ItemCardProps) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 0,
     overflow: "hidden",
     margin: Spacing.one,
     shadowOffset: { width: 0, height: 2 },
@@ -163,10 +170,16 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  cardCompactGrid: {
+    marginHorizontal: 0,
+    marginVertical: Spacing.one,
+  },
+  /** Shorter than square so more room for title/meta in compact 3-column grid */
   imageContainer: {
     width: "100%",
-    height: 130,
+    aspectRatio: 4 / 3,
     position: "relative",
+    backgroundColor: "#E4E6EB",
   },
   image: {
     width: "100%",
@@ -189,29 +202,29 @@ const styles = StyleSheet.create({
     right: Spacing.two,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.half,
-    borderRadius: 6,
+    borderRadius: 0,
   },
   statusText: {
     color: "#FFFFFF",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
   body: {
-    padding: Spacing.two + Spacing.one,
-    gap: Spacing.one + Spacing.half,
+    padding: Spacing.two,
+    gap: Spacing.one,
   },
   title: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
-    lineHeight: 19,
+    lineHeight: 17,
   },
   categoryTag: {
     alignSelf: "flex-start",
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.half,
-    borderRadius: 4,
+    borderRadius: 0,
   },
   categoryText: {
     fontSize: 10,
