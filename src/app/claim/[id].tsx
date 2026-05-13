@@ -20,7 +20,8 @@ import {
   isDatabaseUnavailableError,
   showDatabaseNotConnectedPopup,
 } from '@/lib/db-alert';
-import { Colors, Spacing } from '@/constants/theme';
+import FoundLocationMap from "@/components/FoundLocationMap";
+import { Colors, Spacing } from "@/constants/theme";
 import { openStripeIdentityBeforeClaim } from '@/lib/stripeIdentity';
 import type { Item, Profile, CustomQuestion, CustomAnswer } from '@/types';
 
@@ -255,6 +256,17 @@ export default function ClaimScreen() {
 
           <Text style={styles.itemTitle}>{item.title}</Text>
 
+          {item.found_latitude != null && item.found_longitude != null && (
+            <View style={styles.mapSection}>
+              <Text style={styles.mapSectionTitle}>Where it was found (map)</Text>
+              <FoundLocationMap
+                latitude={item.found_latitude}
+                longitude={item.found_longitude}
+                height={200}
+              />
+            </View>
+          )}
+
           <Text style={styles.instruction}>
             {SKIP_STRIPE_IDENTITY
               ? 'Answer the following questions to support your claim. Be as specific as possible.'
@@ -375,6 +387,15 @@ function makeStyles(colors: typeof Colors.light) {
     itemTitle: {
       fontSize: 20,
       fontWeight: '700',
+      color: colors.text,
+      marginBottom: Spacing.two,
+    },
+    mapSection: {
+      marginBottom: Spacing.three,
+    },
+    mapSectionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
       color: colors.text,
       marginBottom: Spacing.two,
     },

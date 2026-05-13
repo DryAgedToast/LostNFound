@@ -62,6 +62,9 @@ export interface Item {
   description: string | null;
   category: ItemCategory;
   location_found: string;
+  /** When set with found_longitude, map is shown (WGS84). */
+  found_latitude?: number | null;
+  found_longitude?: number | null;
   hotspot_id: string | null;
   image_url: string | null;
   status: ItemStatus;

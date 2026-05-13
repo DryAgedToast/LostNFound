@@ -1,3 +1,4 @@
+import FoundLocationPostEditor from "@/components/FoundLocationPostEditor";
 import { Colors, Spacing } from "@/constants/theme";
 import { getCurrentProfile } from "@/lib/auth";
 import {
@@ -100,6 +101,8 @@ export default function PostScreen() {
   const [category, setCategory] = useState<ItemCategory>("other");
   const [description, setDescription] = useState("");
   const [locationFound, setLocationFound] = useState("");
+  const [foundLatitude, setFoundLatitude] = useState<number | null>(null);
+  const [foundLongitude, setFoundLongitude] = useState<number | null>(null);
   const [hotspotId, setHotspotId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuestionField[]>([
     { localId: generateLocalId(), question: "" },
@@ -326,6 +329,8 @@ export default function PostScreen() {
           category,
           description: description.trim() || null,
           location_found: locationFound.trim(),
+          found_latitude: foundLatitude,
+          found_longitude: foundLongitude,
           hotspot_id: hotspotId,
           image_url: imageUrl,
           status: "unclaimed",
@@ -364,6 +369,8 @@ export default function PostScreen() {
     category,
     description,
     locationFound,
+    foundLatitude,
+    foundLongitude,
     hotspotId,
     imageUri,
     questions,
@@ -518,6 +525,17 @@ export default function PostScreen() {
             value={locationFound}
             onChangeText={setLocationFound}
             returnKeyType="next"
+          />
+
+          <SectionLabel label="Pin on map (optional)" colors={colors} />
+          <FoundLocationPostEditor
+            foundLatitude={foundLatitude}
+            foundLongitude={foundLongitude}
+            onChange={(lat, lng) => {
+              setFoundLatitude(lat);
+              setFoundLongitude(lng);
+            }}
+            colors={colors}
           />
 
           {/* Hotspot */}

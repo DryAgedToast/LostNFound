@@ -86,6 +86,9 @@ create table if not exists items (
   created_at timestamptz not null default now()
 );
 
+alter table items add column if not exists found_latitude double precision;
+alter table items add column if not exists found_longitude double precision;
+
 create table if not exists claims (
   id uuid primary key default gen_random_uuid(),
   item_id uuid references items(id) on delete cascade not null,

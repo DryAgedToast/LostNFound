@@ -40,6 +40,13 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow LostNFound to use your location to mark where you found an item.",
+          "locationWhenInUsePermission": "Allow LostNFound to use your location to mark where you found an item."
+        }
       ]
     ],
     "experiments": {

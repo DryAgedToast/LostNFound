@@ -1,3 +1,4 @@
+import FoundLocationMap from "@/components/FoundLocationMap";
 import { Colors, Spacing } from "@/constants/theme";
 import { DEMO_MODE, getCurrentProfile } from "@/lib/auth";
 import {
@@ -706,6 +707,19 @@ export default function ItemDetailScreen() {
                 <Text style={styles.metaLabel}>Location Found</Text>
                 <Text style={styles.metaValue}>{item.location_found}</Text>
               </View>
+
+              {item.found_latitude != null &&
+                item.found_longitude != null && (
+                  <View style={styles.metaBlock}>
+                    <Text style={styles.metaLabel}>Found Spot (map)</Text>
+                    <FoundLocationMap
+                      latitude={item.found_latitude}
+                      longitude={item.found_longitude}
+                      height={220}
+                      linkColor={colors.primary}
+                    />
+                  </View>
+                )}
 
               {/* Hotspot */}
               {item.hotspots !== null && (
