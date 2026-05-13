@@ -1,5 +1,7 @@
+import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 import { supabase } from "./supabase";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -29,11 +31,49 @@ async function messageFromInvokeError(error: unknown): Promise<string | null> {
   return null;
 }
 
+function appScheme(): string {
+  const s = Constants.expoConfig?.scheme;
+  if (typeof s === "string" && s.length > 0) return s;
+  if (Array.isArray(s) && s.length > 0 && typeof s[0] === "string") return s[0];
+  return "lostnfound";
+}
+
 /**
- * Optional override: HTTPS page used as Stripe `return_url` and as the second
- * argument to `openAuthSessionAsync` (must match Stripe’s redirect exactly).
- * Normally the Edge Function returns `stripe_return_url` (Supabase-hosted HTTPS)
- * so you do not need to set this.
+ * Must match `stripe-identity-return` Location for native (lostnfound://…).
+ * Expo Go uses exp://… which will not match; use a dev build or web for Identity.
+ */
+function nativeStripeIdentityRedirectUrl(body: {
+  item_id?: string;
+  claim_id?: string;
+}): string | undefined {
+  const scheme = appScheme();
+  if (typeof body.item_id === "string") {
+    return `${scheme}://claim/${body.item_id}`;
+  }
+  if (typeof body.claim_id === "string") {
+    return `${scheme}://staff/verify?claimId=${encodeURIComponent(body.claim_id)}`;
+  }
+  return undefined;
+}
+
+function webStripeIdentityRedirectUrl(body: {
+  item_id?: string;
+  claim_id?: string;
+}): string | undefined {
+  if (typeof body.item_id === "string") {
+    return Linking.createURL(`/claim/${body.item_id}`);
+  }
+  if (typeof body.claim_id === "string") {
+    return Linking.createURL("/staff/verify", {
+      queryParams: { claimId: body.claim_id },
+    });
+  }
+  return undefined;
+}
+
+/**
+ * Optional HTTPS bridge for Stripe `return_url` when using a custom hosted page
+ * (sets `claim_item_id` on `EXPO_PUBLIC_STRIPE_IDENTITY_RETURN_URL`).
  */
 function claimReturnUrlFallback(itemId: string): string {
   const bridge = process.env.EXPO_PUBLIC_STRIPE_IDENTITY_RETURN_URL?.trim();
@@ -50,12 +90,34 @@ async function invokeCreateSession(body: {
   claim_id?: string;
   item_id?: string;
 }): Promise<StripeIdentitySessionResult> {
+  const authSessionRedirectUrl =
+    Platform.OS === "web"
+      ? webStripeIdentityRedirectUrl(body)
+      : nativeStripeIdentityRedirectUrl(body);
+
+  if (!authSessionRedirectUrl) {
+    return {
+      ok: false,
+      error:
+        "Missing item_id or claim_id for redirect. Redeploy create-stripe-identity-session if needed.",
+    };
+  }
+
+  const invokeBody: Record<string, unknown> = { ...body };
+  if (
+    Platform.OS === "web" &&
+    (authSessionRedirectUrl.startsWith("https:") ||
+      authSessionRedirectUrl.startsWith("http://"))
+  ) {
+    invokeBody.web_completion_url = authSessionRedirectUrl;
+  }
+
   const { data, error } = await supabase.functions.invoke<{
     url?: string;
     verification_session_id?: string;
     stripe_return_url?: string;
     error?: string;
-  }>("create-stripe-identity-session", { body });
+  }>("create-stripe-identity-session", { body: invokeBody });
 
   if (error) {
     const detail = await messageFromInvokeError(error);
@@ -77,21 +139,10 @@ async function invokeCreateSession(body: {
     return { ok: false, error: "No verification URL returned" };
   }
 
-  // Must match the `return_url` sent to Stripe (HTTPS). Edge returns this;
-  // fall back for older deployed functions.
-  const redirectUrl =
-    data.stripe_return_url ??
-    body.return_url ??
-    (body.item_id ? claimReturnUrlFallback(body.item_id) : undefined);
-  if (!redirectUrl) {
-    return {
-      ok: false,
-      error:
-        "Missing redirect URL. Redeploy Edge Functions (create-stripe-identity-session + stripe-identity-return).",
-    };
-  }
-
-  const browserResult = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+  const browserResult = await WebBrowser.openAuthSessionAsync(
+    url,
+    authSessionRedirectUrl,
+  );
 
   if (browserResult.type === "success") {
     return {

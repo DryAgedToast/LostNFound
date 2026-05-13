@@ -91,7 +91,7 @@ export default function Sidebar() {
       href: string;
       badge?: string;
     }[] = [
-      { icon: "🏠", label: "Home", href: "/(tabs)" },
+      { icon: "🏠", label: "Lost Items", href: "/(tabs)" },
       { icon: "📥", label: "Inbox", href: "/(tabs)/messages" },
       { icon: "🏝️", label: "Hotspots", href: "/(tabs)/hotspots" },
     ];

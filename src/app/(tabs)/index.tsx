@@ -359,9 +359,13 @@ export default function FeedScreen() {
       >
         <View style={styles.headerContent}>
           <View style={styles.headerTopRow}>
-            <Text style={[styles.pageTitle, { color: colors.text }]}>
-              Marketplace
-            </Text>
+            {Platform.OS === "web" ? (
+              <Text style={[styles.pageTitle, { color: colors.text }]}>
+                Lost Items
+              </Text>
+            ) : (
+              <View style={styles.headerTitleSpacer} />
+            )}
             <View style={styles.viewSwitch}>
               <TouchableOpacity
                 style={[
@@ -567,6 +571,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: Spacing.two,
     marginBottom: Spacing.two,
+  },
+  headerTitleSpacer: {
+    flex: 1,
   },
   pageTitle: {
     fontSize: 24,

@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    marginLeft: Platform.OS === "web" ? 280 : 0, // Sidebar width
+    marginLeft: Platform.OS === "web" ? 292 : 0, // Sidebar width
     backgroundColor: Colors.light.backgroundElement,
     ...Platform.select({
       web: {

@@ -13,15 +13,23 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-/** HTTPS URL Stripe accepts; redirects into the app via `stripe-identity-return`. */
+/** HTTPS URL Stripe redirects to; then redirects to native scheme or web app. */
 function stripeIdentityReturnUrl(
   supabaseProjectUrl: string,
-  params: { claim_item_id?: string; claim_id?: string },
+  params: {
+    claim_item_id?: string;
+    claim_id?: string;
+    /** When set, `stripe-identity-return` 302s here (HTTPS app origin) for Expo web. */
+    web_completion?: string;
+  },
 ): string {
   const base = supabaseProjectUrl.replace(/\/$/, '');
   const u = new URL(`${base}/functions/v1/stripe-identity-return`);
   if (params.claim_item_id) u.searchParams.set('claim_item_id', params.claim_item_id);
   if (params.claim_id) u.searchParams.set('claim_id', params.claim_id);
+  if (params.web_completion && params.web_completion.length > 0) {
+    u.searchParams.set('web_completion', params.web_completion);
+  }
   return u.toString();
 }
 
@@ -76,14 +84,19 @@ serve(async (req: Request) => {
 
   let claimId: string | undefined;
   let itemId: string | undefined;
+  let webCompletion: string | undefined;
   try {
     const body = (await req.json()) as {
       claim_id?: string;
       item_id?: string;
       return_url?: string;
+      /** HTTPS URL on the Expo web origin; required for web auth session to complete. */
+      web_completion_url?: string;
     };
     claimId = typeof body.claim_id === 'string' ? body.claim_id : undefined;
     itemId = typeof body.item_id === 'string' ? body.item_id : undefined;
+    webCompletion =
+      typeof body.web_completion_url === 'string' ? body.web_completion_url.trim() : undefined;
   } catch {
     return jsonResponse({ error: 'Invalid JSON body' }, 400);
   }
@@ -103,8 +116,14 @@ serve(async (req: Request) => {
   }
 
   const stripeReturnUrl = itemId
-    ? stripeIdentityReturnUrl(supabaseUrl, { claim_item_id: itemId })
-    : stripeIdentityReturnUrl(supabaseUrl, { claim_id: claimId! });
+    ? stripeIdentityReturnUrl(supabaseUrl, {
+        claim_item_id: itemId,
+        web_completion: webCompletion,
+      })
+    : stripeIdentityReturnUrl(supabaseUrl, {
+        claim_id: claimId!,
+        web_completion: webCompletion,
+      });
 
   const form = new URLSearchParams();
   form.set('type', 'document');
