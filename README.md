@@ -260,6 +260,7 @@ Future development could include:
 - Creating a web version of the app
 - Improving accessibility and mobile responsiveness
 - Adding analytics to understand lost-item trends on campus
+- Making it user-friendly for mobile devices as well
 
 ---
 
@@ -294,14 +295,44 @@ General code expectations:
 
 ---
 
+## Code Style
+
+- Use functional React components
+- Use TypeScript where possible
+- Follow consistent naming:
+  - camelCase for variables
+  - PascalCase for components
+- Keep components small and reusable
+
+---
+
+## User Guide (Basic)
+
+- Open the app
+- Browse listings on home screen
+- Tap item to view details
+- Future versions: claim or post items
+
+---
+
 ## Contributors
 
 Add team members here:
 
 ```txt
-Name - Role / Contributions
-Name - Role / Contributions
-Name - Role / Contributions
+Bryan Cabrera Icte - Developer
+Suvil Kaushik - Developer
+Marc Madlangbayan - Developer
+Ujjwala Pothula - Developer
+Joshua Washington - Developer
+
+To contribute:
+1. Fork the repo
+2. Create a new branch (feature/your-feature-name)
+3. Commit changes
+4. Push and open a pull request
+
+Please follow consistent naming and formatting conventions.
 ```
 
 ---
