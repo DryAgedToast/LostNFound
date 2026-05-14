@@ -1,84 +1,59 @@
-# Welcome to your Expo app 👋
 # University Lost & Found App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 A mobile lost-and-found application built with Expo and React Native. The app is designed to help students quickly post, browse, and claim lost or found items in one centralized place.
 
-## Get started
-This project was created as a university-focused demo for the University of Delaware. The long-term goal is to expand the platform beyond one campus and eventually support multiple universities or even a public lost-and-found system.
+This project was developed as a demo for the University of Delaware, with the long-term goal of expanding to support multiple universities and potentially a public lost-and-found system.
 
-1. Install dependencies
----
-
-   ```bash
-   npm install
-   ```
 ## Project Overview
 
 2. Start the app
-Many lost-and-found systems on campus are informal and difficult to use. At the University of Delaware, one common method for sharing lost items is through a Snapchat group. While this works for some students, it has several problems:
+Many lost-and-found systems on campus are informal and difficult to use. At the University of Delaware, one common method for sharing lost items is through a Snapchat group. While this works for some students, it has several limitations:
 
    ```bash
    npx expo start
    ```
 - Not every student has Snapchat
 - Not every student is in the group
-- Posts are difficult to search through
+- Posts are difficult to search
 - Items can get buried quickly
-- There is no organized claim process
-- There is no centralized system for lost and found items
+- No organized claim process
+- No centralized system
 
-In the output, you'll find options to open the app in a
-This app aims to solve that problem by creating a marketplace-style lost-and-found platform. The structure is inspired by apps like Facebook Marketplace, where users can browse item cards, view photos, filter by category, and interact with listings.
+This app addresses these issues by providing a structured, marketplace-style platform where users can easily post and find lost or found items.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-Instead of buying and selling items, users can post lost or found belongings and help return them to the correct owner.
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 ---
 
 ## Current Demo Scope
 
-When you're ready, run:
-For the current demo, the app is focused locally on the University of Delaware. This allows us to keep the project manageable while demonstrating the core idea and user flow.
+The current version focuses on the University of Delaware to demonstrate the core concept and user flow.
 
-The demo version is intended to show:
+The demo includes:
 
-- How users can browse lost and found items
-- How item listings can be displayed in a marketplace-style layout
-- How users can view item details
-- How users could eventually claim or report an item
-- How the app could replace informal systems like Snapchat groups
+- Browsing lost and found items
+- Viewing item details
+- Displaying listings in a card-based layout
+- Simulating the process of claiming or reporting items
 
-The current version is not intended to be the final production version. Some larger-scale features are explained as future work rather than fully implemented in the demo.
+This is not a full production system. Several features are planned but not yet fully implemented.
 
 ---
 
 ## Features
 
-### Current or Planned Demo Features
+### Current Features
+- Browse lost and found listings
+- View item details (image, description, category)
+- Card-based UI layout
+- University-focused experience
 
-- Browse lost and found item listings
-- View item images, titles, categories, and descriptions
-- Display items in a clean card-based layout
-- Support a University of Delaware-focused lost-and-found experience
-- Provide a foundation for future item claiming and user interaction features
-
-### Future Full-Version Features
-
-- User accounts and authentication
-- University-specific communities
-- Ability to select or join a university
-- Item claiming process
-- Direct messaging between finder and owner
-- Admin moderation for reports and claims
-- Search and filtering by category, date, location, and item type
-- Notifications when similar items are posted
-- Expansion to multiple universities
-- Potential public lost-and-found support outside of universities
+### Future Features
+- User authentication
+- Multi-university support
+- Item claiming system
+- Messaging between users
+- Search and filtering
+- Notifications
+- Admin moderation tools
 
 ---
 
@@ -98,28 +73,20 @@ Additional libraries may be added as development continues.
 
 ## Getting Started
 
-Follow these instructions to run the project locally.
-
 ### Prerequisites
-
-Make sure you have the following installed:
 
 - Node.js
 - npm
-- Expo Go app on your mobile device, or an Android/iOS simulator
+- Expo Go (mobile) or emulator (Android/iOS)
 
-You can check your Node and npm versions with:
-
+Check versions:
 ```bash
-npm run reset-project
 node -v
 npm -v
-```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 ---
 
-## Installation
+### Installation
 
 Clone the repository:
 
@@ -172,19 +139,9 @@ Example format for future use:
 EXPO_PUBLIC_API_URL=your_api_url_here
 EXPO_PUBLIC_PROJECT_ID=your_project_id_here
 ```
-
-### Other setup steps
-Do not commit real secret keys, API tokens, or passwords to the repository.
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
 ---
 
 ## High-Level Architecture
-
-To learn more about developing your project with Expo, look at the following resources:
-The app is structured as a mobile lost-and-found platform.
 
 At a high level, the app includes:
 
@@ -306,17 +263,11 @@ Deployment instructions should be updated once the app is ready for production o
 
 ## Code Quality and Organization
 
-The project should be kept clean and organized so that a future developer, teammate, or stakeholder can understand the work without needing the original developers to explain every file.
-
-General code expectations:
-
-- Use clear and consistent file names
-- Keep reusable UI elements in component files
-- Add comments where logic may not be obvious
-- Avoid leaving unused files or unused imports
-- Keep formatting consistent
-- Do not commit secret keys or private credentials
-- Keep the README updated as the project changes
+ - Consistent naming conventions
+ - Reusable components
+ - Clean and organized structure
+ - Minimal unused code
+ - Comments added where needed
 
 ---
 
@@ -328,7 +279,6 @@ General code expectations:
   - camelCase for variables
   - PascalCase for components
 - Keep components small and reusable
-
 ---
 
 ## User Guide 
