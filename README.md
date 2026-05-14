@@ -8,9 +8,6 @@ This project was developed as a demo for the University of Delaware, with the lo
 
 Many lost-and-found systems on campus are informal and difficult to use. At the University of Delaware, one common method for sharing lost items is through a Snapchat group. While this works for some students, it has several limitations:
 
-   ```bash
-   npx expo start
-   ```
 - Not every student has Snapchat
 - Not every student is in the group
 - Posts are difficult to search
@@ -290,24 +287,21 @@ Deployment instructions should be updated once the app is ready for production o
 ---
 
 ## Contributors
+ - Bryan Cabrera Icte - Developer
+ - Suvil Kaushik - Developer
+ - Marc Madlangbayan - Developer
+ - Ujjwala Pothula - Developer
+ - Joshua Washington - Developer
 
-Add team members here:
-
-```txt
-Bryan Cabrera Icte - Developer
-Suvil Kaushik - Developer
-Marc Madlangbayan - Developer
-Ujjwala Pothula - Developer
-Joshua Washington - Developer
-
+## Contributing
 To contribute:
-1. Fork the repo
-2. Create a new branch (feature/your-feature-name)
-3. Commit changes
-4. Push and open a pull request
+1. Fork the repository  
+2. Create a new branch (`feature/your-feature-name`)  
+3. Commit your changes  
+4. Push your branch and open a pull request  
 
 Please follow consistent naming and formatting conventions.
-```
+
 ---
 
 ## Project Status
