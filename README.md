@@ -30,7 +30,7 @@ The demo includes:
 - Displaying listings in a card-based layout
 - Simulating the process of claiming or reporting items
 
-This is not a full production system. Several features are planned but not yet fully implemented.
+This is not a full production system. A few features are planned but not yet fully implemented and other features could be further refined.
 
 ---
 
@@ -41,15 +41,17 @@ This is not a full production system. Several features are planned but not yet f
 - View item details (image, description, category)
 - Card-based UI layout
 - University-focused experience
-
-### Future Features
-- User authentication
-- Multi-university support
+- ID authentication
 - Item claiming system
 - Messaging between users
 - Search and filtering
-- Notifications
 - Admin moderation tools
+- Mobile functionality
+
+### Future Features
+- Multi-university support
+- Filter item listings by location
+- Notifications
 
 ---
 
@@ -227,18 +229,14 @@ Future development could include:
 - Supporting multiple universities
 - Allowing users to choose their school or community
 - Adding public lost-and-found listings outside of universities
-- Implementing secure user authentication
+- Implementing more secure user authentication
 - Adding a real backend database
 - Adding cloud image storage
-- Creating a verified claim process
-- Adding direct messaging between users
 - Adding push notifications
 - Improving search, filters, and sorting
 - Adding admin controls for inappropriate or duplicate listings
-- Creating a web version of the app
 - Improving accessibility and mobile responsiveness
 - Adding analytics to understand lost-item trends on campus
-- Making it user-friendly for mobile devices as well
 
 ---
 
@@ -282,7 +280,7 @@ Deployment instructions should be updated once the app is ready for production o
 - Open the app
 - Browse listings on home screen
 - Tap item to view details
-- Future versions: claim or post items
+- Claim or post items
 
 ---
 
