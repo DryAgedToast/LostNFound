@@ -40,7 +40,6 @@ Instead of buying and selling items, users can post lost or found belongings and
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 ---
 
-## Get a fresh project
 ## Current Demo Scope
 
 When you're ready, run:
@@ -182,7 +181,6 @@ Do not commit real secret keys, API tokens, or passwords to the repository.
 - Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
 ---
 
-## Learn more
 ## High-Level Architecture
 
 To learn more about developing your project with Expo, look at the following resources:
@@ -333,7 +331,7 @@ General code expectations:
 
 ---
 
-## User Guide (Basic)
+## User Guide 
 
 - Open the app
 - Browse listings on home screen
@@ -361,17 +359,10 @@ To contribute:
 
 Please follow consistent naming and formatting conventions.
 ```
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 ---
 
-## Join the community
 ## Project Status
 
-Join our community of developers creating universal apps.
 This project is currently in demo development.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
 The current goal is to demonstrate the core concept of a centralized, marketplace-style lost-and-found app for a university environment. The final vision is a larger platform that could support many universities and potentially the general public.
