@@ -6,7 +6,6 @@ This project was developed as a demo for the University of Delaware, with the lo
 
 ## Project Overview
 
-2. Start the app
 Many lost-and-found systems on campus are informal and difficult to use. At the University of Delaware, one common method for sharing lost items is through a Snapchat group. While this works for some students, it has several limitations:
 
    ```bash
@@ -83,10 +82,10 @@ Check versions:
 ```bash
 node -v
 npm -v
-
+```
 ---
 
-### Installation
+## Installation
 
 Clone the repository:
 
